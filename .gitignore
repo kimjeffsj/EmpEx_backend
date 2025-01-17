@@ -3,3 +3,26 @@ node_modules
 dist
 build
 *.log
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# IDE - JetBrains
+.idea/
+
+# Temp files
+*.swp
+*~
+.npm
+.eslintcache
