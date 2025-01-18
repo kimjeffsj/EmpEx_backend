@@ -6,7 +6,6 @@ import {
 } from "@/shared/types/employee.types";
 import { EmployeeService } from "@/features/employee/service/employee.service";
 import { Request, Response } from "express";
-import { Employee } from "@/entities/Employee";
 
 export class EmployeeController {
   private employeeService: EmployeeService;
