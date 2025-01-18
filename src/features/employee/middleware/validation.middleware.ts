@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { body, validationResult } from "express-validator";
+import { body, query, validationResult } from "express-validator";
 
 export const validateCreateEmployee = [
   // Required field validation
@@ -66,6 +66,34 @@ export const validateUpdateEmployee = [
       return res.status(400).json({
         code: "VALIDATION_ERROR",
         message: "Validation Failed",
+        details: errors.array(),
+      });
+    }
+    next();
+  },
+];
+
+// Paginated parameter validation
+export const validateListQuery = [
+  query("page")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("Page must be greater than or equal to 1"),
+  query("limit")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("Limit must be greater than or equal to 1"),
+  query("sortOrder")
+    .optional()
+    .isIn(["ASC", "DESC"])
+    .withMessage("Sort order must be either ASC or DESC"),
+
+  (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        code: "VALIDATION_ERROR",
+        message: "Query parameter validation failed",
         details: errors.array(),
       });
     }
