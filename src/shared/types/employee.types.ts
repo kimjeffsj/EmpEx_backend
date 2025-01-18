@@ -34,7 +34,7 @@ export interface EmployeeResponse {
   resignedDate: Date | null;
   createdAt: Date;
   updatedAt: Date;
-  isResigned: boolean;
+  isResigned?: boolean;
 }
 
 // Employee search filter options
@@ -48,7 +48,7 @@ export interface EmployeeFilters {
 }
 
 // Paginated employee list response
-export interface PaginationEmployeeResponse {
+export interface PaginatedEmployeeResponse {
   data: EmployeeResponse[];
   total: number;
   page: number;
