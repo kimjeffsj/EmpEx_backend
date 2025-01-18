@@ -15,7 +15,4 @@ export const TestDataSource = new DataSource({
   dropSchema: true,
   logging: false,
   entities: [Employee],
-  extra: {
-    max: 1,
-  },
 });

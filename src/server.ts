@@ -3,8 +3,10 @@ import express, { Express } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import dotenv from "dotenv";
+import swaggerUi from "swagger-ui-express";
 import { AppDataSource } from "@/app/config/database";
 import { employeeRouter } from "./features/employee/routes/employee.routes";
+import { specs } from "./app/config/swagger";
 
 // Environment variables setup
 dotenv.config();
@@ -16,6 +18,19 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(helmet());
 app.use(express.json());
+
+// Swagger Documentation
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(specs, {
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+    customCss: ".swagger-ui .topbar { display: none }",
+    customSiteTitle: "EmpEx API Documentation",
+  })
+);
 
 // Base route
 app.get("/", (req, res) => {
@@ -51,6 +66,9 @@ const startServer = async () => {
     // Start server
     app.listen(port, () => {
       console.log(`Server is running at http://localhost:${port}`);
+      console.log(
+        `API Documentation available at http://localhost:${port}/api-docs`
+      );
     });
   } catch (error) {
     console.error("Error starting server:", error);
