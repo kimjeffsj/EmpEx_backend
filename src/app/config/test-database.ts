@@ -14,5 +14,8 @@ export const TestDataSource = new DataSource({
   synchronize: true,
   dropSchema: true,
   logging: false,
-  entities: [Employee], // Entity location
+  entities: [Employee],
+  extra: {
+    max: 1,
+  },
 });

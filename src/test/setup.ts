@@ -2,6 +2,9 @@ import { TestDataSource } from "@/app/config/test-database";
 
 beforeAll(async () => {
   try {
+    if (TestDataSource.isInitialized) {
+      await TestDataSource.destroy();
+    }
     await TestDataSource.initialize();
     await TestDataSource.synchronize(true);
     console.log("Test Database initialized");

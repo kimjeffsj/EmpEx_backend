@@ -6,9 +6,7 @@
     "dev": "nodemon -r tsconfig-paths/register src/server.ts",
     "build": "tsc",
     "start": "node -r tsconfig-paths/register dist/server.ts",
-    "test": "NODE_ENV=test jest",
-    "test:watch": "NODE_ENV=test jest --watch",
-    "test:coverage": "NODE_ENV=test jest --coverage"
+    "test": "NODE_ENV=test jest --runInBand --verbose --coverage"
   },
   "keywords": [],
   "author": "",
