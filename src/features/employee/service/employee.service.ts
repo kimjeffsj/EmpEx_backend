@@ -51,7 +51,7 @@ export class EmployeeService {
 
     const queryBuilder = this.employeeRepository.createQueryBuilder("employee");
 
-    // 검색 조건 추가
+    // Add search conditions
     if (search) {
       queryBuilder.where(
         "employee.firstName ILIKE :search OR employee.lastName ILIKE :search OR employee.email ILIKE :search",
@@ -59,21 +59,21 @@ export class EmployeeService {
       );
     }
 
-    // Resigned Employees
+    // Filter by resigned status
     if (typeof isResigned === "boolean") {
       queryBuilder.andWhere(
         "employee.resignedDate IS " + (isResigned ? "NOT NULL" : "NULL")
       );
     }
 
-    // Sort
+    // Apply sorting
     queryBuilder.orderBy(`employee.${sortBy}`, sortOrder);
 
-    // Pagination
+    // Apply pagination
     const skip = (page - 1) * limit;
     queryBuilder.skip(skip).take(limit);
 
-    // 데이터 조회
+    // Fetch data
     const [data, total] = await queryBuilder.getManyAndCount();
 
     return {
