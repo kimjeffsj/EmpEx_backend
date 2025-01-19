@@ -6,6 +6,12 @@ import {
 } from "@/shared/types/employee.types";
 import { EmployeeService } from "@/features/employee/service/employee.service";
 import { Request, Response } from "express";
+import {
+  DatabaseError,
+  DuplicateError,
+  NotFoundError,
+  ValidationError,
+} from "@/shared/types/error.types";
 
 export class EmployeeController {
   private employeeService: EmployeeService;
@@ -23,13 +29,28 @@ export class EmployeeController {
       );
       res.status(201).json(newEmployee);
     } catch (error) {
-      res.status(400).json({
-        code: "CREATE_EMPLOYEE_ERROR",
-        message:
-          error instanceof Error
-            ? error.message
-            : "An error occurred while creating employee.",
-      });
+      if (error instanceof ValidationError) {
+        res.status(400).json({
+          code: error.code,
+          message: error.message,
+          details: error.details,
+        });
+      } else if (error instanceof DuplicateError) {
+        res.status(409).json({
+          code: error.code,
+          message: error.message,
+        });
+      } else if (error instanceof DatabaseError) {
+        res.status(500).json({
+          code: error.code,
+          message: error.message,
+        });
+      } else {
+        res.status(500).json({
+          code: "UNEXPECTED_ERROR",
+          message: "An unexpected error occurred while creating employee.",
+        });
+      }
     }
   }
 
@@ -38,20 +59,24 @@ export class EmployeeController {
     try {
       const id = parseInt(req.params.id);
       const employee = await this.employeeService.getEmployeeById(id);
-
-      if (!employee) {
-        return res.status(404).json({
-          code: "EMPLOYEE_NOT_FOUND",
-          message: "Employee not found.",
-        });
-      }
-
       res.json(employee);
     } catch (error) {
-      res.status(500).json({
-        code: "GET_EMPLOYEE_ERROR",
-        message: "An error occurred while fetching employee information.",
-      });
+      if (error instanceof NotFoundError) {
+        res.status(404).json({
+          code: error.code,
+          message: error.message,
+        });
+      } else if (error instanceof DatabaseError) {
+        res.status(500).json({
+          code: error.code,
+          message: error.message,
+        });
+      } else {
+        res.status(500).json({
+          code: "UNEXPECTED_ERROR",
+          message: "An unexpected error occurred while fetching employee.",
+        });
+      }
     }
   }
 
@@ -72,10 +97,23 @@ export class EmployeeController {
       const employees = await this.employeeService.getEmployees(filters);
       res.json(employees);
     } catch (error) {
-      res.status(500).json({
-        code: "GET_EMPLOYEES_ERROR",
-        message: "An error occurred while fetching employee list.",
-      });
+      if (error instanceof ValidationError) {
+        res.status(400).json({
+          code: error.code,
+          message: error.message,
+          details: error.details,
+        });
+      } else if (error instanceof DatabaseError) {
+        res.status(500).json({
+          code: error.code,
+          message: error.message,
+        });
+      } else {
+        res.status(500).json({
+          code: "UNEXPECTED_ERROR",
+          message: "An unexpected error occurred while fetching employees.",
+        });
+      }
     }
   }
 
@@ -90,22 +128,35 @@ export class EmployeeController {
         updateData
       );
 
-      if (!updatedEmployee) {
-        return res.status(404).json({
-          code: "EMPLOYEE_NOT_FOUND",
-          message: "Employee not found",
-        });
-      }
-
       res.json(updatedEmployee);
     } catch (error) {
-      res.status(400).json({
-        code: "UPDATE_EMPLOYEE_ERROR",
-        message:
-          error instanceof Error
-            ? error.message
-            : "An error occurred while updating employee information.",
-      });
+      if (error instanceof NotFoundError) {
+        res.status(404).json({
+          code: error.code,
+          message: error.message,
+        });
+      } else if (error instanceof ValidationError) {
+        res.status(400).json({
+          code: error.code,
+          message: error.message,
+          details: error.details,
+        });
+      } else if (error instanceof DuplicateError) {
+        res.status(409).json({
+          code: error.code,
+          message: error.message,
+        });
+      } else if (error instanceof DatabaseError) {
+        res.status(500).json({
+          code: error.code,
+          message: error.message,
+        });
+      } else {
+        res.status(500).json({
+          code: "UNEXPECTED_ERROR",
+          message: "An unexpected error occurred while updating employee.",
+        });
+      }
     }
   }
 
@@ -115,19 +166,24 @@ export class EmployeeController {
       const id = parseInt(req.params.id);
       const deleted = await this.employeeService.deleteEmployee(id);
 
-      if (!deleted) {
-        return res.status(404).json({
-          code: "EMPLOYEE_NOT_FOUND",
-          message: "Employee not found",
-        });
-      }
-
       res.status(204).send();
     } catch (error) {
-      res.status(500).json({
-        code: "DELETE_EMPLOYEE_ERROR",
-        message: "An error occurred while deleting employee.",
-      });
+      if (error instanceof NotFoundError) {
+        res.status(404).json({
+          code: error.code,
+          message: error.message,
+        });
+      } else if (error instanceof DatabaseError) {
+        res.status(500).json({
+          code: error.code,
+          message: error.message,
+        });
+      } else {
+        res.status(500).json({
+          code: "UNEXPECTED_ERROR",
+          message: "An unexpected error occurred while deleting employee.",
+        });
+      }
     }
   }
 }

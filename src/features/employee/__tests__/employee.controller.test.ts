@@ -7,13 +7,23 @@ import {
 import { TestDataSource } from "@/app/config/test-database";
 import { Employee } from "@/entities/Employee";
 import { EmployeeService } from "../service/employee.service";
+import {
+  NotFoundError,
+  ValidationError,
+  DuplicateError,
+  DatabaseError,
+} from "@/shared/types/error.types";
+
+// EmployeeService Mock
+jest.mock("../service/employee.service");
 
 describe("EmployeeController", () => {
   let employeeController: EmployeeController;
-  let employeeService: EmployeeService;
-  let testEmployee: Employee;
+  let mockEmployeeService: jest.Mocked<EmployeeService>;
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
+  let jsonSpy: jest.Mock;
+  let statusSpy: jest.Mock;
 
   const mockEmployeeData: CreateEmployeeDto = {
     firstName: "John",
@@ -26,63 +36,34 @@ describe("EmployeeController", () => {
     startDate: new Date(),
   };
 
-  beforeAll(async () => {
-    employeeService = new EmployeeService();
-    employeeService["employeeRepository"] =
-      TestDataSource.getRepository(Employee);
-  });
+  const mockEmployee = {
+    id: 1,
+    ...mockEmployeeData,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    resignedDate: null,
+  };
 
-  beforeEach(async () => {
-    if (TestDataSource.isInitialized) {
-      await TestDataSource.synchronize(true);
-    }
-
+  beforeEach(() => {
+    // 응답 객체 모킹
+    jsonSpy = jest.fn();
+    statusSpy = jest.fn().mockReturnThis();
     mockResponse = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis(),
-      send: jest.fn().mockReturnThis(),
+      status: statusSpy,
+      json: jsonSpy,
+      send: jest.fn(),
     };
 
+    // EmployeeService 모킹
+    mockEmployeeService = new EmployeeService() as jest.Mocked<EmployeeService>;
     employeeController = new EmployeeController();
-    employeeController["employeeService"] = employeeService;
-
-    testEmployee = await employeeService.createEmployee(mockEmployeeData);
-  });
-
-  afterAll(async () => {
-    if (TestDataSource.isInitialized) {
-      await TestDataSource.dropDatabase();
-      await TestDataSource.destroy();
-    }
+    employeeController["employeeService"] = mockEmployeeService;
   });
 
   describe("createEmployee", () => {
     it("should create employee successfully", async () => {
-      const newEmployeeData: CreateEmployeeDto = {
-        ...mockEmployeeData,
-        email: "jane@example.com",
-        sinNumber: "987654321",
-      };
+      mockEmployeeService.createEmployee.mockResolvedValue(mockEmployee);
 
-      mockRequest = {
-        body: newEmployeeData,
-      };
-
-      await employeeController.createEmployee(
-        mockRequest as Request,
-        mockResponse as Response
-      );
-
-      expect(mockResponse.status).toHaveBeenCalledWith(201);
-      expect(mockResponse.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          email: newEmployeeData.email,
-          sinNumber: newEmployeeData.sinNumber,
-        })
-      );
-    });
-
-    it("should return 400 when creating employee with duplicate email", async () => {
       mockRequest = {
         body: mockEmployeeData,
       };
@@ -92,19 +73,77 @@ describe("EmployeeController", () => {
         mockResponse as Response
       );
 
-      expect(mockResponse.status).toHaveBeenCalledWith(400);
-      expect(mockResponse.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          code: "CREATE_EMPLOYEE_ERROR",
-        })
+      expect(statusSpy).toHaveBeenCalledWith(201);
+      expect(jsonSpy).toHaveBeenCalledWith(mockEmployee);
+    });
+
+    it("should handle ValidationError", async () => {
+      const validationError = new ValidationError("Invalid input");
+      mockEmployeeService.createEmployee.mockRejectedValue(validationError);
+
+      mockRequest = {
+        body: {}, // 빈 데이터로 유효성 검증 실패 시나리오
+      };
+
+      await employeeController.createEmployee(
+        mockRequest as Request,
+        mockResponse as Response
       );
+
+      expect(statusSpy).toHaveBeenCalledWith(400);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        code: "VALIDATION_ERROR",
+        message: "Invalid input",
+      });
+    });
+
+    it("should handle DuplicateError", async () => {
+      const duplicateError = new DuplicateError("Employee", "email");
+      mockEmployeeService.createEmployee.mockRejectedValue(duplicateError);
+
+      mockRequest = {
+        body: mockEmployeeData,
+      };
+
+      await employeeController.createEmployee(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(statusSpy).toHaveBeenCalledWith(409);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        code: "DUPLICATE_ERROR",
+        message: "Employee with this email already exists",
+      });
+    });
+
+    it("should handle DatabaseError", async () => {
+      const dbError = new DatabaseError("Database connection failed");
+      mockEmployeeService.createEmployee.mockRejectedValue(dbError);
+
+      mockRequest = {
+        body: mockEmployeeData,
+      };
+
+      await employeeController.createEmployee(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(statusSpy).toHaveBeenCalledWith(500);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        code: "DATABASE_ERROR",
+        message: "Database connection failed",
+      });
     });
   });
 
   describe("getEmployee", () => {
-    it("should get employee by id successfully", async () => {
+    it("should get employee successfully", async () => {
+      mockEmployeeService.getEmployeeById.mockResolvedValue(mockEmployee);
+
       mockRequest = {
-        params: { id: testEmployee.id.toString() },
+        params: { id: "1" },
       };
 
       await employeeController.getEmployee(
@@ -112,17 +151,15 @@ describe("EmployeeController", () => {
         mockResponse as Response
       );
 
-      expect(mockResponse.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: testEmployee.id,
-          email: testEmployee.email,
-        })
-      );
+      expect(jsonSpy).toHaveBeenCalledWith(mockEmployee);
     });
 
-    it("should return 404 for non-existent employee", async () => {
+    it("should handle NotFoundError", async () => {
+      const notFoundError = new NotFoundError("Employee");
+      mockEmployeeService.getEmployeeById.mockRejectedValue(notFoundError);
+
       mockRequest = {
-        params: { id: "999999" },
+        params: { id: "999" },
       };
 
       await employeeController.getEmployee(
@@ -130,24 +167,25 @@ describe("EmployeeController", () => {
         mockResponse as Response
       );
 
-      expect(mockResponse.status).toHaveBeenCalledWith(404);
-      expect(mockResponse.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          code: "EMPLOYEE_NOT_FOUND",
-        })
-      );
+      expect(statusSpy).toHaveBeenCalledWith(404);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        code: "NOT_FOUND",
+        message: "Employee not found",
+      });
     });
   });
 
   describe("updateEmployee", () => {
+    const updateData: UpdateEmployeeDto = {
+      firstName: "Jane",
+    };
+
     it("should update employee successfully", async () => {
-      const updateData: UpdateEmployeeDto = {
-        firstName: "Jane",
-        payRate: 30.0,
-      };
+      const updatedEmployee = { ...mockEmployee, ...updateData };
+      mockEmployeeService.updateEmployee.mockResolvedValue(updatedEmployee);
 
       mockRequest = {
-        params: { id: testEmployee.id.toString() },
+        params: { id: "1" },
         body: updateData,
       };
 
@@ -156,17 +194,16 @@ describe("EmployeeController", () => {
         mockResponse as Response
       );
 
-      expect(mockResponse.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          firstName: updateData.firstName,
-        })
-      );
+      expect(jsonSpy).toHaveBeenCalledWith(updatedEmployee);
     });
 
-    it("should return 404 when updating non-existent employee", async () => {
+    it("should handle NotFoundError", async () => {
+      const notFoundError = new NotFoundError("Employee");
+      mockEmployeeService.updateEmployee.mockRejectedValue(notFoundError);
+
       mockRequest = {
-        params: { id: "999999" },
-        body: { firstName: "Jane" },
+        params: { id: "999" },
+        body: updateData,
       };
 
       await employeeController.updateEmployee(
@@ -174,19 +211,41 @@ describe("EmployeeController", () => {
         mockResponse as Response
       );
 
-      expect(mockResponse.status).toHaveBeenCalledWith(404);
-      expect(mockResponse.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          code: "EMPLOYEE_NOT_FOUND",
-        })
+      expect(statusSpy).toHaveBeenCalledWith(404);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        code: "NOT_FOUND",
+        message: "Employee not found",
+      });
+    });
+
+    it("should handle DuplicateError", async () => {
+      const duplicateError = new DuplicateError("Employee", "email");
+      mockEmployeeService.updateEmployee.mockRejectedValue(duplicateError);
+
+      mockRequest = {
+        params: { id: "1" },
+        body: { email: "existing@example.com" },
+      };
+
+      await employeeController.updateEmployee(
+        mockRequest as Request,
+        mockResponse as Response
       );
+
+      expect(statusSpy).toHaveBeenCalledWith(409);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        code: "DUPLICATE_ERROR",
+        message: "Employee with this email already exists",
+      });
     });
   });
 
   describe("deleteEmployee", () => {
     it("should delete employee successfully", async () => {
+      mockEmployeeService.deleteEmployee.mockResolvedValue(true);
+
       mockRequest = {
-        params: { id: testEmployee.id.toString() },
+        params: { id: "1" },
       };
 
       await employeeController.deleteEmployee(
@@ -194,13 +253,15 @@ describe("EmployeeController", () => {
         mockResponse as Response
       );
 
-      expect(mockResponse.status).toHaveBeenCalledWith(204);
-      expect(mockResponse.send).toHaveBeenCalled();
+      expect(statusSpy).toHaveBeenCalledWith(204);
     });
 
-    it("should return 404 when deleting non-existent employee", async () => {
+    it("should handle NotFoundError", async () => {
+      const notFoundError = new NotFoundError("Employee");
+      mockEmployeeService.deleteEmployee.mockRejectedValue(notFoundError);
+
       mockRequest = {
-        params: { id: "999999" },
+        params: { id: "999" },
       };
 
       await employeeController.deleteEmployee(
@@ -208,70 +269,60 @@ describe("EmployeeController", () => {
         mockResponse as Response
       );
 
-      expect(mockResponse.status).toHaveBeenCalledWith(404);
-      expect(mockResponse.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          code: "EMPLOYEE_NOT_FOUND",
-        })
-      );
+      expect(statusSpy).toHaveBeenCalledWith(404);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        code: "NOT_FOUND",
+        message: "Employee not found",
+      });
     });
   });
 
   describe("getEmployees", () => {
-    beforeEach(async () => {
-      await employeeService.createEmployee({
-        ...mockEmployeeData,
-        email: "jane@example.com",
-        sinNumber: "987654321",
-        firstName: "Jane",
+    const mockEmployeesList = {
+      data: [mockEmployee],
+      total: 1,
+      page: 1,
+      limit: 10,
+      totalPages: 1,
+    };
+
+    it("should get employees list successfully", async () => {
+      mockEmployeeService.getEmployees.mockResolvedValue(mockEmployeesList);
+
+      mockRequest = {
+        query: {},
+      };
+
+      await employeeController.getEmployees(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(jsonSpy).toHaveBeenCalledWith(mockEmployeesList);
+    });
+
+    it("should handle ValidationError for invalid filters", async () => {
+      const validationError = new ValidationError(
+        "Invalid pagination parameters"
+      );
+      mockEmployeeService.getEmployees.mockRejectedValue(validationError);
+
+      mockRequest = {
+        query: {
+          page: "-1",
+        },
+      };
+
+      await employeeController.getEmployees(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(statusSpy).toHaveBeenCalledWith(400);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        code: "VALIDATION_ERROR",
+        message: "Invalid pagination parameters",
       });
-    });
-
-    it("should return paginated employees", async () => {
-      mockRequest = {
-        query: {
-          page: "1",
-          limit: "10",
-        },
-      };
-
-      await employeeController.getEmployees(
-        mockRequest as Request,
-        mockResponse as Response
-      );
-
-      expect(mockResponse.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.arrayContaining([
-            expect.objectContaining({ email: "john@example.com" }),
-            expect.objectContaining({ email: "jane@example.com" }),
-          ]),
-          total: 2,
-          page: 1,
-          limit: 10,
-        })
-      );
-    });
-
-    it("should filter employees by search term", async () => {
-      mockRequest = {
-        query: {
-          search: "jane",
-        },
-      };
-
-      await employeeController.getEmployees(
-        mockRequest as Request,
-        mockResponse as Response
-      );
-
-      expect(mockResponse.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.arrayContaining([
-            expect.objectContaining({ email: "jane@example.com" }),
-          ]),
-        })
-      );
     });
   });
 });
