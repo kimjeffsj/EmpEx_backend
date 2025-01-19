@@ -224,14 +224,14 @@ describe("TimesheetService", () => {
       const timesheets = [
         {
           employeeId: testEmployee.id,
-          startTime: new Date("2024-03-18T09:00:00"),
-          endTime: new Date("2024-03-18T17:00:00"),
+          startTime: new Date(Date.UTC(2024, 2, 18, 9, 0, 0)),
+          endTime: new Date(Date.UTC(2024, 2, 18, 17, 0, 0)),
           regularHours: 8,
         },
         {
           employeeId: testEmployee.id,
-          startTime: new Date("2024-03-19T09:00:00"),
-          endTime: new Date("2024-03-19T17:00:00"),
+          startTime: new Date(Date.UTC(2024, 2, 19, 9, 0, 0)),
+          endTime: new Date(Date.UTC(2024, 2, 19, 17, 0, 0)),
           regularHours: 8,
         },
       ];
@@ -264,15 +264,19 @@ describe("TimesheetService", () => {
     });
 
     it("should filter timesheets by date range", async () => {
+      const testDate = new Date(Date.UTC(2024, 2, 18));
+
       const result = await timesheetService.getTimesheets({
-        startDate: new Date("2024-03-18"),
-        endDate: new Date("2024-03-18"),
+        startDate: testDate,
+        endDate: testDate,
       });
 
       expect(result.data.length).toBe(1);
-      expect(result.data[0].startTime.toDateString()).toBe(
-        new Date("2024-03-18").toDateString()
-      );
+
+      const resultDate = new Date(result.data[0].startTime);
+      expect(resultDate.getUTCFullYear()).toBe(testDate.getUTCFullYear());
+      expect(resultDate.getUTCMonth()).toBe(testDate.getUTCMonth());
+      expect(resultDate.getUTCDate()).toBe(testDate.getUTCDate());
     });
 
     it("should throw ValidationError for invalid pagination parameters", async () => {

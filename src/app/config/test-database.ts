@@ -16,4 +16,7 @@ export const TestDataSource = new DataSource({
   dropSchema: true,
   logging: false,
   entities: [Employee, Timesheet],
+  extra: {
+    timezone: "UTC",
+  },
 });

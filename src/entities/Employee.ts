@@ -34,10 +34,10 @@ export class Employee {
   @Column("date", { nullable: true })
   resignedDate: Date | null;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: "timestamptz" })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: "timestamptz" })
   updatedAt: Date;
 
   @Column("boolean", { default: false, select: false })

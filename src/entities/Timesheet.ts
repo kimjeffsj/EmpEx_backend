@@ -21,10 +21,10 @@ export class Timesheet {
   @JoinColumn({ name: "employeeId" })
   employee: Employee;
 
-  @Column("timestamp")
+  @Column("timestamptz")
   startTime: Date;
 
-  @Column("timestamp")
+  @Column("timestamptz")
   endTime: Date;
 
   @Column("decimal", { precision: 5, scale: 2 })
@@ -39,9 +39,9 @@ export class Timesheet {
   @Column("decimal", { precision: 10, scale: 2 })
   totalPay: number;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: "timestamptz" })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: "timestamptz" })
   updatedAt: Date;
 }

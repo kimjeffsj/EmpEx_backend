@@ -16,4 +16,7 @@ export const AppDataSource = new DataSource({
   entities: ["src/entities/**/*.ts"], // Entity location
   migrations: ["src/migrations/**/*.ts"], // Migration files location
   subscribers: ["src/subscribers/**/*.ts"],
+  extra: {
+    timezone: "UTC",
+  },
 });

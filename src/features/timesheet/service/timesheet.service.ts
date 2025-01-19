@@ -162,18 +162,36 @@ export class TimesheetService {
       }
 
       if (startDate) {
-        const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
-        queryBuilder.andWhere("DATE(timesheet.startTime) >= DATE(:startDate)", {
-          startDate: start,
+        const utcStart = new Date(
+          Date.UTC(
+            startDate.getUTCFullYear(),
+            startDate.getUTCMonth(),
+            startDate.getUTCDate(),
+            0,
+            0,
+            0,
+            0
+          )
+        );
+        queryBuilder.andWhere("timesheet.startTime >= :startDate", {
+          startDate: utcStart,
         });
       }
 
       if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        queryBuilder.andWhere("DATE(timesheet.endTime) <= DATE(:endDate)", {
-          endDate: end,
+        const utcEnd = new Date(
+          Date.UTC(
+            endDate.getUTCFullYear(),
+            endDate.getUTCMonth(),
+            endDate.getUTCDate(),
+            23,
+            59,
+            59,
+            999
+          )
+        );
+        queryBuilder.andWhere("timesheet.endTime <= :endDate", {
+          endDate: utcEnd,
         });
       }
 
