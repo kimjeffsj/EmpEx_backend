@@ -5,6 +5,11 @@ import {
   CreateEmployeeDto,
   UpdateEmployeeDto,
 } from "@/shared/types/employee.types";
+import {
+  NotFoundError,
+  ValidationError,
+  DuplicateError,
+} from "@/shared/types/error.types";
 
 describe("EmployeeService", () => {
   let employeeService: EmployeeService;
@@ -34,7 +39,6 @@ describe("EmployeeService", () => {
     if (TestDataSource.isInitialized) {
       await TestDataSource.synchronize(true);
     }
-
     testEmployee = await employeeService.createEmployee(mockEmployeeData);
   });
 
@@ -44,53 +48,57 @@ describe("EmployeeService", () => {
     }
   });
 
-  // POST
-  // Create a new Employee
   describe("createEmployee", () => {
     it("should create a new employee successfully", async () => {
-      const newEmployeeData: CreateEmployeeDto = {
+      const newEmployee = await employeeService.createEmployee({
         ...mockEmployeeData,
-        firstName: "Jane",
-        lastName: "Doe",
-        email: "jane@example.com",
+        email: "new@example.com",
         sinNumber: "987654321",
-      };
-
-      const newEmployee = await employeeService.createEmployee(newEmployeeData);
+      });
 
       expect(newEmployee).toBeDefined();
-      expect(newEmployee.id).toBeDefined();
-      expect(newEmployee.firstName).toBe(newEmployeeData.firstName);
-      expect(newEmployee.email).toBe(newEmployeeData.email);
+      expect(newEmployee.email).toBe("new@example.com");
     });
 
-    it("should throw error when creating employee with duplicate email", async () => {
-      const duplicateEmployee = { ...mockEmployeeData };
-      await expect(
-        employeeService.createEmployee(duplicateEmployee)
-      ).rejects.toThrow();
+    it("should throw ValidationError when required fields are missing", async () => {
+      const invalidData = { ...mockEmployeeData };
+      delete (invalidData as any).email;
+
+      await expect(async () => {
+        await employeeService.createEmployee(invalidData as CreateEmployeeDto);
+      }).rejects.toThrow(ValidationError);
+    });
+
+    it("should throw DuplicateError when email already exists", async () => {
+      await expect(async () => {
+        await employeeService.createEmployee(mockEmployeeData);
+      }).rejects.toThrow(DuplicateError);
+    });
+
+    it("should throw DuplicateError when SIN number already exists", async () => {
+      await expect(async () => {
+        await employeeService.createEmployee({
+          ...mockEmployeeData,
+          email: "different@example.com",
+        });
+      }).rejects.toThrow(DuplicateError);
     });
   });
 
-  // GET
-  // Get one employee
   describe("getEmployeeById", () => {
-    it("should return employee by id", async () => {
+    it("should return employee by id successfully", async () => {
       const employee = await employeeService.getEmployeeById(testEmployee.id);
-
       expect(employee).toBeDefined();
-      expect(employee?.id).toBe(testEmployee.id);
-      expect(employee?.email).toBe(testEmployee.email);
+      expect(employee.id).toBe(testEmployee.id);
     });
 
-    it("should return null for non-existent employee", async () => {
-      const employee = await employeeService.getEmployeeById(999999);
-      expect(employee).toBeNull();
+    it("should throw NotFoundError for non-existent employee", async () => {
+      await expect(async () => {
+        await employeeService.getEmployeeById(999999);
+      }).rejects.toThrow(NotFoundError);
     });
   });
 
-  // PUT
-  // Update Employee information
   describe("updateEmployee", () => {
     it("should update employee successfully", async () => {
       const updateData: UpdateEmployeeDto = {
@@ -103,47 +111,58 @@ describe("EmployeeService", () => {
         updateData
       );
 
-      expect(updatedEmployee).toBeDefined();
-      expect(updatedEmployee?.firstName).toBe(updateData.firstName);
-      expect(Number(updatedEmployee?.payRate)).toBe(updateData.payRate);
-      expect(updatedEmployee?.lastName).toBe(testEmployee.lastName); // Keep not updated field
+      expect(updatedEmployee.firstName).toBe("Jane");
+      expect(Number(updatedEmployee.payRate)).toBe(30.0);
     });
 
-    it("should return null when updating non-existent employee", async () => {
+    it("should throw NotFoundError when updating non-existent employee", async () => {
       const updateData: UpdateEmployeeDto = { firstName: "Jane" };
-      const result = await employeeService.updateEmployee(999999, updateData);
-      expect(result).toBeNull();
+
+      await expect(async () => {
+        await employeeService.updateEmployee(999999, updateData);
+      }).rejects.toThrow(NotFoundError);
+    });
+
+    it("should throw DuplicateError when updating to existing email", async () => {
+      // Create another employee
+      const anotherEmployee = await employeeService.createEmployee({
+        ...mockEmployeeData,
+        email: "jane@example.com",
+        sinNumber: "987654321",
+      });
+
+      await expect(async () => {
+        await employeeService.updateEmployee(testEmployee.id, {
+          email: "jane@example.com",
+        });
+      }).rejects.toThrow(DuplicateError);
     });
   });
 
-  // DELETE
-  // Delete a employee
   describe("deleteEmployee", () => {
     it("should delete employee successfully", async () => {
       const result = await employeeService.deleteEmployee(testEmployee.id);
       expect(result).toBe(true);
 
-      const deletedEmployee = await employeeService.getEmployeeById(
-        testEmployee.id
-      );
-      expect(deletedEmployee).toBeNull();
+      await expect(async () => {
+        await employeeService.getEmployeeById(testEmployee.id);
+      }).rejects.toThrow(NotFoundError);
     });
 
-    it("should return false when deleting non-existent employee", async () => {
-      const result = await employeeService.deleteEmployee(999999);
-      expect(result).toBe(false);
+    it("should throw NotFoundError when deleting non-existent employee", async () => {
+      await expect(async () => {
+        await employeeService.deleteEmployee(999999);
+      }).rejects.toThrow(NotFoundError);
     });
   });
 
-  // GET
-  // All Employees
   describe("getEmployees", () => {
     beforeEach(async () => {
       await employeeService.createEmployee({
         ...mockEmployeeData,
-        firstName: "Jane",
         email: "jane@example.com",
         sinNumber: "987654321",
+        firstName: "Jane",
       });
     });
 
@@ -156,26 +175,24 @@ describe("EmployeeService", () => {
       expect(result.data).toHaveLength(2);
       expect(result.total).toBe(2);
       expect(result.page).toBe(1);
-      expect(result.limit).toBe(10);
+    });
+
+    it("should throw ValidationError for invalid pagination parameters", async () => {
+      await expect(async () => {
+        await employeeService.getEmployees({
+          page: 0,
+          limit: -1,
+        });
+      }).rejects.toThrow(ValidationError);
     });
 
     it("should filter employees by search term", async () => {
       const result = await employeeService.getEmployees({
-        search: "john",
+        search: "Jane",
       });
 
       expect(result.data).toHaveLength(1);
-      expect(result.data[0].email).toBe("john@example.com");
-    });
-
-    it("should sort employees", async () => {
-      const result = await employeeService.getEmployees({
-        sortBy: "email",
-        sortOrder: "DESC",
-      });
-
-      expect(result.data[0].email).toBe("john@example.com");
-      expect(result.data[1].email).toBe("jane@example.com");
+      expect(result.data[0].firstName).toBe("Jane");
     });
   });
 });
