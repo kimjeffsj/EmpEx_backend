@@ -4,8 +4,7 @@ import {
   CreateEmployeeDto,
   UpdateEmployeeDto,
 } from "@/shared/types/employee.types";
-import { TestDataSource } from "@/app/config/test-database";
-import { Employee } from "@/entities/Employee";
+
 import { EmployeeService } from "../service/employee.service";
 import {
   NotFoundError,
@@ -45,7 +44,6 @@ describe("EmployeeController", () => {
   };
 
   beforeEach(() => {
-    // 응답 객체 모킹
     jsonSpy = jest.fn();
     statusSpy = jest.fn().mockReturnThis();
     mockResponse = {
@@ -54,7 +52,7 @@ describe("EmployeeController", () => {
       send: jest.fn(),
     };
 
-    // EmployeeService 모킹
+    // EmployeeService mocking
     mockEmployeeService = new EmployeeService() as jest.Mocked<EmployeeService>;
     employeeController = new EmployeeController();
     employeeController["employeeService"] = mockEmployeeService;
@@ -82,7 +80,7 @@ describe("EmployeeController", () => {
       mockEmployeeService.createEmployee.mockRejectedValue(validationError);
 
       mockRequest = {
-        body: {}, // 빈 데이터로 유효성 검증 실패 시나리오
+        body: {}, // empty data for validation error
       };
 
       await employeeController.createEmployee(

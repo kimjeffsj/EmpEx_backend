@@ -117,7 +117,10 @@ const options = {
       },
     },
   },
-  apis: ["./src/features/employee/routes/*.ts"],
+  apis: [
+    "./src/features/employee/routes/*.ts",
+    "./src/features/timesheet/routes/*.ts",
+  ],
 };
 
 export const specs = swaggerJsdoc(options);

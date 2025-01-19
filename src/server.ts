@@ -5,9 +5,12 @@ import helmet from "helmet";
 import dotenv from "dotenv";
 import swaggerUi from "swagger-ui-express";
 import { AppDataSource } from "@/app/config/database";
-import { employeeRouter } from "./features/employee/routes/employee.routes";
 import { specs } from "./app/config/swagger";
 import { errorHandler } from "./shared/middleware/error.middleware";
+
+// Routers
+import { employeeRouter } from "./features/employee/routes/employee.routes";
+import { timesheetRouter } from "./features/timesheet/routes/timesheet.routes";
 
 // Environment variables setup
 dotenv.config();
@@ -40,6 +43,7 @@ app.get("/", (req, res) => {
 
 // Routers
 app.use("/api/employees", employeeRouter);
+app.use("/api/timesheets", timesheetRouter);
 
 // Error handling middleware
 app.use(errorHandler);

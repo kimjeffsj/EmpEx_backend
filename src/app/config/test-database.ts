@@ -1,6 +1,7 @@
 import { DataSource } from "typeorm";
 import dotenv from "dotenv";
 import { Employee } from "@/entities/Employee";
+import { Timesheet } from "@/entities/Timesheet";
 
 dotenv.config({ path: ".env.test" });
 
@@ -14,5 +15,8 @@ export const TestDataSource = new DataSource({
   synchronize: true,
   dropSchema: true,
   logging: false,
-  entities: [Employee],
+  entities: [Employee, Timesheet],
+  extra: {
+    timezone: "UTC",
+  },
 });
