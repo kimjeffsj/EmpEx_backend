@@ -7,6 +7,7 @@ import swaggerUi from "swagger-ui-express";
 import { AppDataSource } from "@/app/config/database";
 import { employeeRouter } from "./features/employee/routes/employee.routes";
 import { specs } from "./app/config/swagger";
+import { errorHandler } from "./shared/middleware/error.middleware";
 
 // Environment variables setup
 dotenv.config();
@@ -40,21 +41,8 @@ app.get("/", (req, res) => {
 // Routers
 app.use("/api/employees", employeeRouter);
 
-// Global error handler
-app.use(
-  (
-    err: Error,
-    req: express.Request,
-    res: express.Response,
-    next: express.NextFunction
-  ) => {
-    console.error(err.stack);
-    res.status(500).json({
-      code: "SERVER_ERROR",
-      message: "Internal server error",
-    });
-  }
-);
+// Error handling middleware
+app.use(errorHandler);
 
 // Database connection and server startup
 const startServer = async () => {

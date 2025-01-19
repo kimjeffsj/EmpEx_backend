@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response } from "express";
+import { ErrorRequestHandler, NextFunction, Request, Response } from "express";
 import { AppError } from "../types/error.types";
 import { QueryFailedError } from "typeorm";
 
@@ -9,12 +9,12 @@ interface ErrorResponse {
   stack?: string;
 }
 
-export const errorHandler = (
-  err: Error,
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const errorHandler: ErrorRequestHandler = (
+  err,
+  req,
+  res,
+  next
+): void => {
   let response: ErrorResponse;
 
   if (process.env.NODE_ENV === "development") {
@@ -28,7 +28,8 @@ export const errorHandler = (
   // Custom AppError
   if (err instanceof AppError) {
     response = err.toJSON();
-    return res.status(err.statusCode).json(response);
+    res.status(err.statusCode).json(response);
+    return;
   }
 
   // TypeORM Errors
@@ -39,14 +40,16 @@ export const errorHandler = (
         code: "DUPLICATE_ENTRY",
         message: "A record with this value already exists in the database",
       };
-      return res.status(409).json(response);
+      res.status(409).json(response);
+      return;
     }
 
     response = {
       code: "DATABASE_ERROR",
       message: "Database operation failed",
     };
-    return res.status(400).json(response);
+    res.status(400).json(response);
+    return;
   }
 
   // Unexpected Errors
@@ -59,5 +62,6 @@ export const errorHandler = (
     response.stack = err.stack;
   }
 
-  return res.status(500).json(response);
+  res.status(500).json(response);
+  return;
 };
