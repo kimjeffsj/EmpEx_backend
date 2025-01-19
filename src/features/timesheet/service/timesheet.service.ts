@@ -88,6 +88,7 @@ export class TimesheetService {
           `Database error while fetching timesheet: ${error.message}`
         );
       }
+      throw error;
     }
   }
 
@@ -161,13 +162,19 @@ export class TimesheetService {
       }
 
       if (startDate) {
-        queryBuilder.andWhere("timesheet.startTime >= :startDate", {
-          startDate,
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        queryBuilder.andWhere("DATE(timesheet.startTime) >= DATE(:startDate)", {
+          startDate: start,
         });
       }
 
       if (endDate) {
-        queryBuilder.andWhere("timesheet.endTime <= :endDate", { endDate });
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        queryBuilder.andWhere("DATE(timesheet.endTime) <= DATE(:endDate)", {
+          endDate: end,
+        });
       }
 
       queryBuilder.orderBy("timesheet.startTime", "DESC");
