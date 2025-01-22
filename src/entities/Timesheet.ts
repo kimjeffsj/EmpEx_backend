@@ -8,6 +8,7 @@ import {
   UpdateDateColumn,
 } from "typeorm";
 import { Employee } from "./Employee";
+import { Payroll } from "./Payroll";
 
 @Entity("timesheets")
 export class Timesheet {
@@ -38,6 +39,13 @@ export class Timesheet {
 
   @Column("decimal", { precision: 10, scale: 2 })
   totalPay: number;
+
+  @Column({ nullable: true })
+  payrollId: number;
+
+  @ManyToOne(() => Payroll, (payroll) => payroll.timesheets)
+  @JoinColumn({ name: "payrollId" })
+  payroll: Payroll;
 
   @CreateDateColumn({ type: "timestamptz" })
   createdAt: Date;

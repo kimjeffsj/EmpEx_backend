@@ -5,6 +5,7 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from "typeorm";
+import { Payroll } from "./Payroll";
 
 export enum PayPeriodType {
   FIRST_HALF = "FIRST_HALF", // 1 - 15
@@ -40,6 +41,9 @@ export class PayPeriod {
     default: PayPeriodStatus.PENDING,
   })
   status: PayPeriodStatus;
+
+  @OneToMany(() => Payroll, (payroll) => payroll.payPeriod)
+  payrolls: Payroll[];
 
   @CreateDateColumn({ type: "timestamptz" })
   createdAt: Date;
