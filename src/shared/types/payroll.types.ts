@@ -1,5 +1,6 @@
 import { PayPeriodStatus, PayPeriodType } from "@/entities/PayPeriod";
 import { PayrollStatus } from "@/entities/Payroll";
+import { PayrollDocumentStatus } from "@/entities/PayrollDocument";
 
 // PayPeriod DTO
 export interface CreatePayPeriodDto {
@@ -17,10 +18,34 @@ export interface PayrollCalculationDto {
   employeeId: number;
   regularHours: number;
   overtimeHours: number;
+  totalHours: number;
 }
 
 export interface UpdatePayrollDto {
   status?: PayrollStatus;
+}
+
+// PayrollDocument DTO
+export interface CreatePayrollDocumentDto {
+  payPeriodId: number;
+  excelFilePath?: string;
+  pdfFilePath?: string;
+  status: PayrollDocumentStatus;
+}
+
+export interface UpdatePayrollDocumentDto {
+  excelFilePath?: string;
+  originalPdfPath?: string;
+  status?: PayrollDocumentStatus;
+  sentDate?: Date;
+  receivedDate?: Date;
+}
+
+// EmployeePaystub DTOs
+export interface CreateEmployeePaystubDto {
+  employeeId: number;
+  payrollDocumentId: number;
+  filePath: string;
 }
 
 // Response Types
@@ -32,6 +57,7 @@ export interface PayPeriodResponse {
   status: PayPeriodStatus;
   createdAt: Date;
   updatedAt: Date;
+  payrolls?: PayrollResponse[];
 }
 
 export interface PayrollResponse {
@@ -42,8 +68,35 @@ export interface PayrollResponse {
   overtimeHours: number;
   totalHours: number;
   grossPay: number;
+  status: PayrollStatus;
   createAt: Date;
   updatedAt: Date;
+}
+
+export interface EmployeePaystubResponse {
+  id: number;
+  employeeId: number;
+  payrollDocumentId: number;
+  filePath: string;
+  createdAt: Date;
+  employee?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+}
+
+export interface PayrollDocumentResponse {
+  id: number;
+  payPeriodId: number;
+  excelFilePath: string | null;
+  originalPdfPath: string | null;
+  status: PayrollDocumentStatus;
+  sentDate: Date | null;
+  receivedDate: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  paystubs?: EmployeePaystubResponse[];
 }
 
 // Filter Types

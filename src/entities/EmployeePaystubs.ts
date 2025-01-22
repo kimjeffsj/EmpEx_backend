@@ -8,6 +8,7 @@ import {
 } from "typeorm";
 import { Employee } from "./Employee";
 import { PayPeriod } from "./PayPeriod";
+import { PayrollDocument } from "./PayrollDocument";
 
 @Entity("employee_paystubs")
 export class EmployeePaystub {
@@ -22,11 +23,11 @@ export class EmployeePaystub {
   employee: Employee;
 
   @Column()
-  payPeriodId: number;
+  payrollDocumentId: number;
 
-  @ManyToOne(() => PayPeriod)
-  @JoinColumn({ name: "payPeriodId" })
-  payPeriod: PayPeriod;
+  @ManyToOne(() => PayrollDocument, (document) => document.paystubs)
+  @JoinColumn({ name: "payrollDocumentId" })
+  payrollDocument: PayrollDocument;
 
   @Column()
   filePath: string;
