@@ -49,11 +49,11 @@ export class PayrollService {
       let endDate: Date;
 
       if (periodType === PayPeriodType.FIRST_HALF) {
-        startDate = new Date(Date.UTC(year, month - 1, 1));
-        endDate = new Date(Date.UTC(year, month - 1, 15, 23, 59, 59));
+        startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
+        endDate = new Date(Date.UTC(year, month - 1, 15, 23, 59, 59, 999));
       } else {
-        startDate = new Date(Date.UTC(year, month - 1, 16));
-        endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59));
+        startDate = new Date(Date.UTC(year, month - 1, 16, 0, 0, 0));
+        endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
       }
 
       // Query for existing pay period
@@ -120,6 +120,9 @@ export class PayrollService {
       // Update pay period status
       await this.updatePayPeriodStatus(periodId, PayPeriodStatus.PROCESSING);
     } catch (error) {
+      if (error instanceof NotFoundError || error instanceof ValidationError) {
+        throw error;
+      }
       throw new DatabaseError(
         `Error calculating period payroll: ${error.message}`
       );
@@ -147,12 +150,14 @@ export class PayrollService {
 
       if (startDate) {
         queryBuilder.andWhere("payPeriod.startDate >= :startDate", {
-          startDate,
+          startDate: startDate,
         });
       }
 
       if (endDate) {
-        queryBuilder.andWhere("payPeriod.endDate <= :endDate", { endDate });
+        queryBuilder.andWhere("payPeriod.endDate <= :endDate", {
+          endDate: endDate,
+        });
       }
 
       if (status) {
@@ -202,9 +207,17 @@ export class PayrollService {
   ): Promise<PayPeriod> {
     try {
       const payPeriod = await this.getPayPeriodById(id);
+
+      if (!payPeriod) {
+        throw new NotFoundError("Pay period not found");
+      }
+
       payPeriod.status = status;
       return await this.payPeriodRepository.save(payPeriod);
     } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
       throw new DatabaseError(
         `Error updating pay period status: ${error.message}`
       );
