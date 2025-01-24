@@ -1,6 +1,6 @@
 export interface ExcelGenerateOptions {
-  sheetName?: string;
-  fileName?: string;
+  sheetName: string;
+  fileName: string;
 }
 
 export interface PayrollReportData {

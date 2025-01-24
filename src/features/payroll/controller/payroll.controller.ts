@@ -9,6 +9,7 @@ import {
 import { PayPeriodFilters } from "@/shared/types/payroll.types";
 import { ExcelService } from "@/modules/excel/service/excel.service";
 import { EmployeeService } from "@/features/employee/service/employee.service";
+import { getPayPeriodCode } from "../../../shared/utils/payPeriodFormatter.utils";
 
 export class PayrollController {
   private payrollService: PayrollService;
@@ -221,6 +222,13 @@ export class PayrollController {
   async exportPayrollToExcel(req: Request, res: Response) {
     try {
       const payPeriodId = parseInt(req.params.id);
+
+      const payPeriod = await this.payrollService.getPayPeriodById(payPeriodId);
+      const periodCode = getPayPeriodCode(
+        payPeriod.startDate,
+        payPeriod.periodType
+      );
+
       const buffer = await this.excelService.generatePayrollReport(payPeriodId);
 
       res.setHeader(
@@ -229,7 +237,7 @@ export class PayrollController {
       );
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=payroll_report_${payPeriodId}.xlsx`
+        `attachment; filename=payroll_report_${periodCode}.xlsx`
       );
 
       res.send(buffer);
@@ -263,6 +271,7 @@ export class PayrollController {
   // Export T4
   async exportT4BasicInfo(req: Request, res: Response) {
     try {
+      const currentYear = new Date().getFullYear();
       const buffer = await this.excelService.generateT4BasicReport();
 
       res.setHeader(
@@ -271,7 +280,7 @@ export class PayrollController {
       );
       res.setHeader(
         "Content-Disposition",
-        "attachment; filename=t4_basic_info.xlsx"
+        `attachment; filename=${currentYear}_t4_report.xlsx`
       );
 
       res.send(buffer);

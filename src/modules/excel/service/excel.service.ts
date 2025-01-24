@@ -4,6 +4,7 @@ import { Injectable } from "@nestjs/common";
 import { ExcelGenerateOptions } from "../interfaces/excel.types";
 import * as Excel from "exceljs";
 import { formatDate, formatSIN } from "../utils/formatters";
+import { getPayPeriodCode } from "@/shared/utils/payPeriodFormatter.utils";
 
 @Injectable()
 export class ExcelService {
@@ -16,7 +17,7 @@ export class ExcelService {
   }
 
   private async createWorkbook(
-    options?: ExcelGenerateOptions
+    options: ExcelGenerateOptions
   ): Promise<Excel.Workbook> {
     const workbook = new Excel.Workbook();
     workbook.created = new Date();
@@ -25,12 +26,20 @@ export class ExcelService {
   }
 
   async generatePayrollReport(payPeriodId: number): Promise<Buffer> {
-    const workbook = await this.createWorkbook();
-    const worksheet = workbook.addWorksheet("Payroll Report");
-
     // Query pay period
     const payPeriod = await this.payrollService.getPayPeriodById(payPeriodId);
     const payrolls = payPeriod.payrolls;
+
+    const periodCode = getPayPeriodCode(
+      payPeriod.startDate,
+      payPeriod.periodType
+    );
+
+    const workbook = await this.createWorkbook({
+      sheetName: "Payroll Report",
+      fileName: `payroll_report_${periodCode}.xlsx`,
+    });
+    const worksheet = workbook.addWorksheet(options.sheetName);
 
     // Set headers
     worksheet.columns = [
@@ -98,12 +107,18 @@ export class ExcelService {
       reportData.reduce((sum, data) => sum + data.grossPay, 0),
     ]);
 
-    return await workbook.xlsx.writeBuffer();
+    return Buffer.from(await workbook.xlsx.writeBuffer());
   }
 
   async generateT4BasicReport(): Promise<Buffer> {
-    const workbook = await this.createWorkbook();
-    const worksheet = workbook.addWorksheet("T4 Basic Information");
+    const currentYear = new Date().getFullYear();
+
+    const workbook = await this.createWorkbook({
+      sheetName: `${currentYear} T4 Information`,
+      fileName: `${currentYear}_t4_report.xlsx`,
+    });
+
+    const worksheet = workbook.addWorksheet(options.sheetName);
 
     // Set headers
     worksheet.columns = [
@@ -153,6 +168,6 @@ export class ExcelService {
     worksheet.addRow(["Active Employees", activeEmployees]);
     worksheet.addRow(["Resigned Employees", resignedEmployees]);
 
-    return await workbook.xlsx.writeBuffer();
+    return Buffer.from(await workbook.xlsx.writeBuffer());
   }
 }
