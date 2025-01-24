@@ -35,7 +35,7 @@ export class Payroll {
   payPeriodId: number;
 
   @ManyToOne(() => PayPeriod, (PayPeriod) => PayPeriod.payrolls)
-  @JoinColumn({ name: "payPeriod" })
+  @JoinColumn({ name: "payPeriodId" })
   payPeriod: PayPeriod;
 
   @OneToMany(() => Timesheet, (timesheet) => timesheet.payroll)
