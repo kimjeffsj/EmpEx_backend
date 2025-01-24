@@ -10,7 +10,10 @@ export class ExcelService {
   constructor(
     private payrollService: PayrollService,
     private employeeService: EmployeeService
-  ) {}
+  ) {
+    this.payrollService = payrollService;
+    this.employeeService = employeeService;
+  }
 
   private async createWorkbook(
     options?: ExcelGenerateOptions
