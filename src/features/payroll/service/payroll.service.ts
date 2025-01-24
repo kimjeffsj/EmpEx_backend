@@ -20,24 +20,15 @@ import {
 } from "@/shared/types/payroll.types";
 import { Between, Repository } from "typeorm";
 
-interface PayrollCalculation {
-  totalRegularHours: number;
-  totalOvertimeHours: number;
-  totalHours: number;
-  grossPay: number;
-}
-
 export class PayrollService {
   private payrollRepository: Repository<Payroll>;
   private payPeriodRepository: Repository<PayPeriod>;
   private timesheetRepository: Repository<Timesheet>;
-  private employeeRepository: Repository<Employee>;
 
   constructor() {
     this.payrollRepository = AppDataSource.getRepository(Payroll);
     this.payPeriodRepository = AppDataSource.getRepository(PayPeriod);
     this.timesheetRepository = AppDataSource.getRepository(Timesheet);
-    this.employeeRepository = AppDataSource.getRepository(Employee);
   }
 
   private getUTCDateRange(

@@ -7,12 +7,22 @@ import {
   ValidationError,
 } from "@/shared/types/error.types";
 import { PayPeriodFilters } from "@/shared/types/payroll.types";
+import { ExcelService } from "@/modules/excel/service/excel.service";
+import { EmployeeService } from "@/features/employee/service/employee.service";
+import { getPayPeriodCode } from "../../../shared/utils/payPeriodFormatter.utils";
 
 export class PayrollController {
   private payrollService: PayrollService;
+  private excelService: ExcelService;
+  private employeeService: EmployeeService;
 
   constructor() {
+    this.employeeService = new EmployeeService();
     this.payrollService = new PayrollService();
+    this.excelService = new ExcelService(
+      this.payrollService,
+      this.employeeService
+    );
   }
 
   // Create or Get Pay Period
@@ -203,6 +213,98 @@ export class PayrollController {
           code: "UNEXPECTED_ERROR",
           message:
             "An unexpected error occurred while updating pay period status.",
+        });
+      }
+    }
+  }
+
+  // Export to Excel
+  async exportPayrollToExcel(req: Request, res: Response) {
+    try {
+      const payPeriodId = parseInt(req.params.id);
+
+      const payPeriod = await this.payrollService.getPayPeriodById(payPeriodId);
+      const periodCode = getPayPeriodCode(
+        payPeriod.startDate,
+        payPeriod.periodType
+      );
+
+      const buffer = await this.excelService.generatePayrollReport(payPeriodId);
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=payroll_report_${periodCode}.xlsx`
+      );
+
+      res.send(buffer);
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        res.status(404).json({
+          code: error.code,
+          message: error.message,
+        });
+      } else if (error instanceof ValidationError) {
+        res.status(400).json({
+          code: error.code,
+          message: error.message,
+          details: error.details,
+        });
+      } else if (error instanceof DatabaseError) {
+        res.status(500).json({
+          code: error.code,
+          message: error.message,
+        });
+      } else {
+        res.status(500).json({
+          code: "UNEXPECTED_ERROR",
+          message:
+            "An unexpected error occurred while generating payroll report.",
+        });
+      }
+    }
+  }
+
+  // Export T4
+  async exportT4BasicInfo(req: Request, res: Response) {
+    try {
+      const currentYear = new Date().getFullYear();
+      const buffer = await this.excelService.generateT4BasicReport();
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=${currentYear}_t4_report.xlsx`
+      );
+
+      res.send(buffer);
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        res.status(404).json({
+          code: error.code,
+          message: error.message,
+        });
+      } else if (error instanceof ValidationError) {
+        res.status(400).json({
+          code: error.code,
+          message: error.message,
+          details: error.details,
+        });
+      } else if (error instanceof DatabaseError) {
+        res.status(500).json({
+          code: error.code,
+          message: error.message,
+        });
+      } else {
+        res.status(500).json({
+          code: "UNEXPECTED_ERROR",
+          message: "An unexpected error occurred while generating T4 report.",
         });
       }
     }
