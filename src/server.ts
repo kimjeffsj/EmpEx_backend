@@ -11,6 +11,7 @@ import { errorHandler } from "./shared/middleware/error.middleware";
 // Routers
 import { employeeRouter } from "./features/employee/routes/employee.routes";
 import { timesheetRouter } from "./features/timesheet/routes/timesheet.routes";
+import { payrollRouter } from "./features/payroll/routes/payroll.routes";
 
 // Environment variables setup
 dotenv.config();
@@ -44,6 +45,7 @@ app.get("/", (req, res) => {
 // Routers
 app.use("/api/employees", employeeRouter);
 app.use("/api/timesheets", timesheetRouter);
+app.use("/api/payrolls", payrollRouter);
 
 // Error handling middleware
 app.use(errorHandler);
