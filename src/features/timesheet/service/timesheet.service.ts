@@ -162,6 +162,7 @@ export class TimesheetService {
       }
 
       if (startDate) {
+        // Convert to UTC start of day
         const utcStart = new Date(
           Date.UTC(
             startDate.getUTCFullYear(),
@@ -179,6 +180,7 @@ export class TimesheetService {
       }
 
       if (endDate) {
+        // Convert to UTC end of day
         const utcEnd = new Date(
           Date.UTC(
             endDate.getUTCFullYear(),
