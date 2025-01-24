@@ -133,3 +133,31 @@ export interface PaginatedPayrollResponse {
   limit: number;
   totalPages: number;
 }
+
+// Define valid status transitions
+export const VALID_STATUS_TRANSITIONS: Record<
+  PayPeriodStatus,
+  PayPeriodStatus[]
+> = {
+  [PayPeriodStatus.PENDING]: [PayPeriodStatus.PROCESSING],
+  [PayPeriodStatus.PROCESSING]: [PayPeriodStatus.COMPLETED],
+  [PayPeriodStatus.COMPLETED]: [], // No further transitions allowed
+};
+
+// Function to check if status transition is valid
+export function isValidStatusTransition(
+  currentStatus: PayPeriodStatus,
+  newStatus: PayPeriodStatus
+): boolean {
+  const validTransitions = VALID_STATUS_TRANSITIONS[currentStatus];
+  return validTransitions.includes(newStatus);
+}
+
+// Status validation error messages
+export const STATUS_TRANSITION_ERRORS: Record<PayPeriodStatus, string> = {
+  [PayPeriodStatus.PENDING]:
+    "Pay period can only transition from PENDING to PROCESSING",
+  [PayPeriodStatus.PROCESSING]:
+    "Pay period can only transition from PROCESSING to COMPLETED",
+  [PayPeriodStatus.COMPLETED]: "Cannot change status of COMPLETED pay period",
+};

@@ -1,5 +1,9 @@
 import { Router } from "express";
 import { PayrollController } from "../controller/payroll.controller";
+import {
+  validate,
+  validatePayPeriodInfos,
+} from "../middleware/validation.middleware";
 
 export const payrollRouter = Router();
 const payrollController = new PayrollController();
@@ -51,9 +55,9 @@ const payrollController = new PayrollController();
  */
 payrollRouter.post(
   "/periods",
+  validate(validatePayPeriodInfos.create),
   payrollController.createPayPeriod.bind(payrollController)
 );
-
 /**
  * @swagger
  * /api/payrolls/periods/{id}:
@@ -154,6 +158,7 @@ payrollRouter.get(
  */
 payrollRouter.get(
   "/periods",
+  validate(validatePayPeriodInfos.list),
   payrollController.getPayPeriods.bind(payrollController)
 );
 
@@ -245,5 +250,6 @@ payrollRouter.post(
  */
 payrollRouter.put(
   "/periods/:id/status",
+  validate(validatePayPeriodInfos.updateStatus),
   payrollController.updatePayPeriodStatus.bind(payrollController)
 );

@@ -13,8 +13,10 @@ import {
   ValidationError,
 } from "@/shared/types/error.types";
 import {
+  isValidStatusTransition,
   PaginatedPayPeriodResponse,
   PayPeriodFilters,
+  STATUS_TRANSITION_ERRORS,
 } from "@/shared/types/payroll.types";
 import { Between, Repository } from "typeorm";
 
@@ -244,7 +246,7 @@ export class PayrollService {
   // Update pay period status
   async updatePayPeriodStatus(
     id: number,
-    status: PayPeriodStatus
+    newStatus: PayPeriodStatus
   ): Promise<PayPeriod> {
     try {
       const payPeriod = await this.getPayPeriodById(id);
@@ -253,7 +255,12 @@ export class PayrollService {
         throw new NotFoundError("Pay period not found");
       }
 
-      payPeriod.status = status;
+      // Check if status transition is valid
+      if (!isValidStatusTransition(payPeriod.status, newStatus)) {
+        throw new ValidationError(STATUS_TRANSITION_ERRORS[payPeriod.status]);
+      }
+
+      payPeriod.status = newStatus;
       return await this.payPeriodRepository.save(payPeriod);
     } catch (error) {
       if (error instanceof NotFoundError) {
