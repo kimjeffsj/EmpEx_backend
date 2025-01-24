@@ -35,10 +35,12 @@ export class ExcelService {
       payPeriod.periodType
     );
 
-    const workbook = await this.createWorkbook({
+    const options = {
       sheetName: "Payroll Report",
       fileName: `payroll_report_${periodCode}.xlsx`,
-    });
+    };
+
+    const workbook = await this.createWorkbook(options);
     const worksheet = workbook.addWorksheet(options.sheetName);
 
     // Set headers
@@ -112,12 +114,12 @@ export class ExcelService {
 
   async generateT4BasicReport(): Promise<Buffer> {
     const currentYear = new Date().getFullYear();
-
-    const workbook = await this.createWorkbook({
+    const options = {
       sheetName: `${currentYear} T4 Information`,
       fileName: `${currentYear}_t4_report.xlsx`,
-    });
+    };
 
+    const workbook = await this.createWorkbook(options);
     const worksheet = workbook.addWorksheet(options.sheetName);
 
     // Set headers

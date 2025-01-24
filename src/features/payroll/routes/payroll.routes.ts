@@ -253,3 +253,58 @@ payrollRouter.put(
   validate(validatePayPeriodInfos.updateStatus),
   payrollController.updatePayPeriodStatus.bind(payrollController)
 );
+
+/**
+ * @swagger
+ * /api/payrolls/periods/{id}/excel:
+ *   get:
+ *     summary: Export payroll report to Excel
+ *     description: Generate and download a payroll report for a specific pay period
+ *     tags: [Payroll]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Pay period ID
+ *     responses:
+ *       200:
+ *         description: Excel file
+ *         content:
+ *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       404:
+ *         description: Pay period not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+payrollRouter.get(
+  "/periods/:id/excel",
+  payrollController.exportPayrollToExcel.bind(payrollController)
+);
+
+/**
+ * @swagger
+ * /api/payrolls/t4:
+ *   get:
+ *     summary: Export T4 basic information report
+ *     description: Generate and download T4 basic information report for all employees
+ *     tags: [Payroll]
+ *     responses:
+ *       200:
+ *         description: Excel file
+ *         content:
+ *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+ *             schema:
+ *               type: string
+ *               format: binary
+ */
+payrollRouter.get(
+  "/t4",
+  payrollController.exportT4BasicInfo.bind(payrollController)
+);
