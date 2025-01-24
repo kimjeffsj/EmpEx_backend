@@ -73,6 +73,7 @@ export class PayrollService {
           startDate: Between(startDate, endDate),
           periodType,
         },
+        relations: ["payrolls", "payrolls.employee"],
       });
 
       if (existingPeriod) {
@@ -80,14 +81,20 @@ export class PayrollService {
       }
 
       // Create period
-      const newPeriod = this.payPeriodRepository.create({
-        startDate,
-        endDate,
-        periodType,
-        status: PayPeriodStatus.PENDING,
-      });
+      const newPeriod = await this.payPeriodRepository.save(
+        this.payPeriodRepository.create({
+          startDate,
+          endDate,
+          periodType,
+          status: PayPeriodStatus.PENDING,
+        })
+      );
 
-      return await this.payPeriodRepository.save(newPeriod);
+      // Calculate payroll immediately after creation
+      await this.calculatePeriodPayroll(newPeriod.id);
+
+      // Fetch and return the complete pay period with calculated payrolls
+      return await this.getPayPeriodById(newPeriod.id);
     } catch (error) {
       if (error instanceof ValidationError) {
         throw error;
