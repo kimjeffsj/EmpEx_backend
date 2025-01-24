@@ -38,6 +38,29 @@ export class PayrollService {
     this.employeeRepository = AppDataSource.getRepository(Employee);
   }
 
+  private getUTCDateRange(
+    year: number,
+    month: number,
+    isFirstHalf: boolean
+  ): { startDate: Date; endDate: Date } {
+    if (isFirstHalf) {
+      // Day 1 of the month 00:00:00 UTC
+      const startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
+      // Day 15 of the month 23:59:59.999 UTC
+      const endDate = new Date(Date.UTC(year, month - 1, 15, 23, 59, 59, 999));
+      return { startDate, endDate };
+    } else {
+      // Day 16 of the month 00:00:00 UTC
+      const startDate = new Date(Date.UTC(year, month - 1, 16, 0, 0, 0));
+      // End day of the month 23:59:59.999 UTC
+      const lastDay = new Date(year, month, 0).getDate();
+      const endDate = new Date(
+        Date.UTC(year, month - 1, lastDay, 23, 59, 59, 999)
+      );
+      return { startDate, endDate };
+    }
+  }
+
   // Get or Create pay period
   async getOrCreatePayPeriod(
     periodType: PayPeriodType,
@@ -45,16 +68,11 @@ export class PayrollService {
     month: number
   ): Promise<PayPeriod> {
     try {
-      let startDate: Date;
-      let endDate: Date;
-
-      if (periodType === PayPeriodType.FIRST_HALF) {
-        startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
-        endDate = new Date(Date.UTC(year, month - 1, 15, 23, 59, 59, 999));
-      } else {
-        startDate = new Date(Date.UTC(year, month - 1, 16, 0, 0, 0));
-        endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
-      }
+      const { startDate, endDate } = this.getUTCDateRange(
+        year,
+        month,
+        periodType === PayPeriodType.FIRST_HALF
+      );
 
       // Query for existing pay period
       const existingPeriod = await this.payPeriodRepository.findOne({
@@ -149,17 +167,40 @@ export class PayrollService {
         .leftJoinAndSelect("payroll.employee", "employee");
 
       if (startDate) {
+        // Convert to UTC start of day
+        const utcStart = new Date(
+          Date.UTC(
+            startDate.getUTCFullYear(),
+            startDate.getUTCMonth(),
+            startDate.getUTCDate(),
+            0,
+            0,
+            0,
+            0
+          )
+        );
         queryBuilder.andWhere("payPeriod.startDate >= :startDate", {
-          startDate: startDate,
+          startDate: utcStart,
         });
       }
 
       if (endDate) {
+        // Convert to UTC end of day
+        const utcEnd = new Date(
+          Date.UTC(
+            endDate.getUTCFullYear(),
+            endDate.getUTCMonth(),
+            endDate.getUTCDate(),
+            23,
+            59,
+            59,
+            999
+          )
+        );
         queryBuilder.andWhere("payPeriod.endDate <= :endDate", {
-          endDate: endDate,
+          endDate: utcEnd,
         });
       }
-
       if (status) {
         queryBuilder.andWhere("payPeriod.status = :status", { status });
       }
