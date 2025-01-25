@@ -139,7 +139,6 @@ export const VALID_STATUS_TRANSITIONS: Record<
   PayPeriodStatus,
   PayPeriodStatus[]
 > = {
-  [PayPeriodStatus.PENDING]: [PayPeriodStatus.PROCESSING],
   [PayPeriodStatus.PROCESSING]: [PayPeriodStatus.COMPLETED],
   [PayPeriodStatus.COMPLETED]: [], // No further transitions allowed
 };
@@ -155,9 +154,11 @@ export function isValidStatusTransition(
 
 // Status validation error messages
 export const STATUS_TRANSITION_ERRORS: Record<PayPeriodStatus, string> = {
-  [PayPeriodStatus.PENDING]:
-    "Pay period can only transition from PENDING to PROCESSING",
   [PayPeriodStatus.PROCESSING]:
     "Pay period can only transition from PROCESSING to COMPLETED",
   [PayPeriodStatus.COMPLETED]: "Cannot change status of COMPLETED pay period",
 };
+
+export interface GetOrCreatePayPeriodOptions {
+  forceRecalculate?: boolean;
+}

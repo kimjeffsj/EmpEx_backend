@@ -13,7 +13,6 @@ export enum PayPeriodType {
 }
 
 export enum PayPeriodStatus {
-  PENDING = "PENDING",
   PROCESSING = "PROCESSING",
   COMPLETED = "COMPLETED",
 }
@@ -38,7 +37,7 @@ export class PayPeriod {
   @Column({
     type: "enum",
     enum: PayPeriodStatus,
-    default: PayPeriodStatus.PENDING,
+    default: PayPeriodStatus.PROCESSING,
   })
   status: PayPeriodStatus;
 

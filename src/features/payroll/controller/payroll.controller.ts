@@ -28,7 +28,7 @@ export class PayrollController {
   // Create or Get Pay Period
   async createPayPeriod(req: Request, res: Response) {
     try {
-      const { periodType, year, month } = req.body;
+      const { periodType, year, month, forceRecalculate } = req.body;
 
       // Validate period type
       if (!Object.values(PayPeriodType).includes(periodType)) {
@@ -47,7 +47,8 @@ export class PayrollController {
       const payPeriod = await this.payrollService.getOrCreatePayPeriod(
         periodType,
         year,
-        month
+        month,
+        { forceRecalculate: !!forceRecalculate }
       );
 
       res.status(201).json(payPeriod);
@@ -73,7 +74,6 @@ export class PayrollController {
   }
 
   // Get Pay Period By ID
-
   async getPayPeriod(req: Request, res: Response) {
     try {
       const id = parseInt(req.params.id);
@@ -140,57 +140,14 @@ export class PayrollController {
     }
   }
 
-  // Calculate Period Payroll
-  async calculatePeriodPayroll(req: Request, res: Response) {
+  // Complete Pay Period
+  async completePayPeriod(req: Request, res: Response) {
     try {
       const id = parseInt(req.params.id);
-      await this.payrollService.calculatePeriodPayroll(id);
-
-      const updatedPayPeriod = await this.payrollService.getPayPeriodById(id);
-      res.json(updatedPayPeriod);
-    } catch (error) {
-      if (error instanceof NotFoundError) {
-        res.status(404).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else if (error instanceof ValidationError) {
-        res.status(400).json({
-          code: error.code,
-          message: error.message,
-          details: error.details,
-        });
-      } else if (error instanceof DatabaseError) {
-        res.status(500).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else {
-        res.status(500).json({
-          code: "UNEXPECTED_ERROR",
-          message: "An unexpected error occurred while calculating payroll.",
-        });
-      }
-    }
-  }
-
-  // Update Pay Period Status
-  async updatePayPeriodStatus(req: Request, res: Response) {
-    try {
-      const id = parseInt(req.params.id);
-      const { status } = req.body;
-
-      // Validate Status
-      if (!Object.values(PayPeriodStatus).includes(status)) {
-        throw new ValidationError("Invalid status");
-      }
-
-      const updatedPayPeriod = await this.payrollService.updatePayPeriodStatus(
-        id,
-        status
+      const completedPayPeriod = await this.payrollService.completePayPeriod(
+        id
       );
-
-      res.json(updatedPayPeriod);
+      res.json(completedPayPeriod);
     } catch (error) {
       if (error instanceof NotFoundError) {
         res.status(404).json({
@@ -211,8 +168,7 @@ export class PayrollController {
       } else {
         res.status(500).json({
           code: "UNEXPECTED_ERROR",
-          message:
-            "An unexpected error occurred while updating pay period status.",
+          message: "An unexpected error occurred while completing pay period.",
         });
       }
     }

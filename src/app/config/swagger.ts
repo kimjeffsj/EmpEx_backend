@@ -138,7 +138,7 @@ const options = {
             },
             status: {
               type: "string",
-              enum: ["PENDING", "PROCESSING", "COMPLETED"],
+              enum: ["PROCESSING", "COMPLETED"],
               description: "Current status of the pay period",
             },
             createdAt: {
@@ -157,58 +157,6 @@ const options = {
                 $ref: "#/components/schemas/Payroll",
               },
               description: "Associated payroll records",
-            },
-          },
-        },
-        Payroll: {
-          type: "object",
-          properties: {
-            id: {
-              type: "integer",
-              description: "Payroll ID",
-            },
-            employeeId: {
-              type: "integer",
-              description: "Employee ID",
-            },
-            payPeriodId: {
-              type: "integer",
-              description: "Pay period ID",
-            },
-            totalRegularHours: {
-              type: "number",
-              format: "float",
-              description: "Total regular hours worked",
-            },
-            totalOvertimeHours: {
-              type: "number",
-              format: "float",
-              description: "Total overtime hours worked",
-            },
-            totalHours: {
-              type: "number",
-              format: "float",
-              description: "Total hours (regular + weighted overtime)",
-            },
-            grossPay: {
-              type: "number",
-              format: "float",
-              description: "Gross pay amount",
-            },
-            status: {
-              type: "string",
-              enum: ["DRAFT", "CONFIRMED", "SENT", "COMPLETED"],
-              description: "Current status of the payroll",
-            },
-            createdAt: {
-              type: "string",
-              format: "date-time",
-              description: "Record creation timestamp",
-            },
-            updatedAt: {
-              type: "string",
-              format: "date-time",
-              description: "Record update timestamp",
             },
           },
         },

@@ -22,6 +22,10 @@ export const validatePayPeriodInfos = {
     body("month")
       .isInt({ min: 1, max: 12 })
       .withMessage("Month must be between 1 and 12"),
+    body("forceRecalculate")
+      .optional()
+      .isBoolean()
+      .withMessage("forceRecalculate must be a boolean"),
   ],
 
   list: [
@@ -58,16 +62,6 @@ export const validatePayPeriodInfos = {
       .optional()
       .isIn(Object.values(PayPeriodType))
       .withMessage("Invalid period type"),
-  ],
-
-  updateStatus: [
-    body("status")
-      .isIn(Object.values(PayPeriodStatus))
-      .withMessage("Invalid status")
-      .custom(async (status, { req }) => {
-        // Status transition validation will be handled in the service layer
-        return true;
-      }),
   ],
 };
 
