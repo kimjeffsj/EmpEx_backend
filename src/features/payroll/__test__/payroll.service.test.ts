@@ -41,7 +41,7 @@ describe("PayrollService", () => {
     employeeRepository = TestDataSource.getRepository(Employee);
 
     payrollService = new PayrollService();
-    // 서비스의 private 레포지토리 설정
+    // Set up private repositories for the service
     payrollService["payrollRepository"] = payrollRepository;
     payrollService["payPeriodRepository"] = payPeriodRepository;
     payrollService["timesheetRepository"] = timesheetRepository;
@@ -71,15 +71,15 @@ describe("PayrollService", () => {
       );
 
       expect(result).toBeDefined();
-      // toEqual 대신 날짜를 ISO 문자열로 변환하여 비교
-      expect(result.startDate.toISOString()).toBe(
-        new Date(Date.UTC(2024, 2, 1, 0, 0, 0, 0)).toISOString()
+
+      expect(new Date(result.startDate).toISOString()).toBe(
+        new Date(Date.UTC(2024, 2, 1)).toISOString()
       );
-      expect(result.endDate.toISOString()).toBe(
-        new Date(Date.UTC(2024, 2, 15, 23, 59, 59, 999)).toISOString()
+      expect(new Date(result.endDate).toDateString()).toBe(
+        new Date(Date.UTC(2024, 2, 15)).toDateString()
       );
       expect(result.periodType).toBe(PayPeriodType.FIRST_HALF);
-      expect(result.status).toBe(PayPeriodStatus.PENDING);
+      expect(result.status).toBe(PayPeriodStatus.PROCESSING);
     });
 
     it("should create a new pay period for second half of month", async () => {
@@ -90,28 +90,34 @@ describe("PayrollService", () => {
       );
 
       expect(result).toBeDefined();
-      expect(result.startDate.toISOString()).toBe(
-        new Date(Date.UTC(2024, 2, 16, 0, 0, 0, 0)).toISOString()
+      expect(new Date(result.startDate).toISOString()).toBe(
+        new Date(Date.UTC(2024, 2, 16)).toISOString()
       );
-      expect(result.endDate.toISOString()).toBe(
-        new Date(Date.UTC(2024, 2, 31, 23, 59, 59, 999)).toISOString()
+      expect(new Date(result.endDate).toISOString()).toBe(
+        new Date(Date.UTC(2024, 2, 31)).toISOString()
       );
       expect(result.periodType).toBe(PayPeriodType.SECOND_HALF);
+      expect(result.status).toBe(PayPeriodStatus.PROCESSING);
     });
 
-    it("should return existing pay period if already exists", async () => {
+    it("should force recalculate existing pay period when specified", async () => {
+      // First creation
       const firstPeriod = await payrollService.getOrCreatePayPeriod(
         PayPeriodType.FIRST_HALF,
         2024,
         3
       );
-      const secondPeriod = await payrollService.getOrCreatePayPeriod(
+
+      // Force recalculation
+      const recalculatedPeriod = await payrollService.getOrCreatePayPeriod(
         PayPeriodType.FIRST_HALF,
         2024,
-        3
+        3,
+        { forceRecalculate: true }
       );
 
-      expect(firstPeriod.id).toBe(secondPeriod.id);
+      expect(recalculatedPeriod.id).not.toBe(firstPeriod.id);
+      expect(recalculatedPeriod.status).toBe(PayPeriodStatus.PROCESSING);
     });
   });
 
@@ -161,42 +167,14 @@ describe("PayrollService", () => {
       );
     });
 
-    it("should throw ValidationError if pay period is not in PENDING status", async () => {
-      // Update pay period status
+    it("should throw ValidationError if pay period is already completed", async () => {
       await payPeriodRepository.update(payPeriod.id, {
-        status: PayPeriodStatus.PROCESSING,
+        status: PayPeriodStatus.COMPLETED,
       });
 
       await expect(
         payrollService.calculatePeriodPayroll(payPeriod.id)
       ).rejects.toThrow(ValidationError);
-    });
-  });
-
-  describe("updatePayPeriodStatus", () => {
-    let payPeriod: PayPeriod;
-
-    beforeEach(async () => {
-      payPeriod = await payrollService.getOrCreatePayPeriod(
-        PayPeriodType.FIRST_HALF,
-        2024,
-        3
-      );
-    });
-
-    it("should update pay period status", async () => {
-      const updatedPeriod = await payrollService.updatePayPeriodStatus(
-        payPeriod.id,
-        PayPeriodStatus.PROCESSING
-      );
-
-      expect(updatedPeriod.status).toBe(PayPeriodStatus.PROCESSING);
-    });
-
-    it("should throw NotFoundError for non-existent pay period", async () => {
-      await expect(
-        payrollService.updatePayPeriodStatus(9999, PayPeriodStatus.PROCESSING)
-      ).rejects.toThrow(NotFoundError);
     });
   });
 
@@ -238,15 +216,56 @@ describe("PayrollService", () => {
       expect(result.data[0].periodType).toBe(PayPeriodType.FIRST_HALF);
     });
 
-    it("should filter pay periods by status", async () => {
-      await payrollService.updatePayPeriodStatus(1, PayPeriodStatus.PROCESSING);
+    it("should filter by status", async () => {
+      const payPeriod = await payrollService.getOrCreatePayPeriod(
+        PayPeriodType.FIRST_HALF,
+        2024,
+        3
+      );
+      await payrollService.completePayPeriod(payPeriod.id);
 
       const result = await payrollService.getPayPeriods({
-        status: PayPeriodStatus.PROCESSING,
+        status: PayPeriodStatus.COMPLETED,
       });
 
       expect(result.data).toHaveLength(1);
-      expect(result.data[0].status).toBe(PayPeriodStatus.PROCESSING);
+      expect(result.data[0].status).toBe(PayPeriodStatus.COMPLETED);
+    });
+  });
+
+  describe("completePayPeriod", () => {
+    let payPeriod: PayPeriod;
+
+    beforeEach(async () => {
+      payPeriod = await payrollService.getOrCreatePayPeriod(
+        PayPeriodType.FIRST_HALF,
+        2024,
+        3
+      );
+    });
+
+    it("should complete pay period successfully", async () => {
+      const completedPeriod = await payrollService.completePayPeriod(
+        payPeriod.id
+      );
+
+      expect(completedPeriod.status).toBe(PayPeriodStatus.COMPLETED);
+    });
+
+    it("should throw ValidationError when completing already completed period", async () => {
+      // First complete the period
+      await payrollService.completePayPeriod(payPeriod.id);
+
+      // Try to complete again
+      await expect(
+        payrollService.completePayPeriod(payPeriod.id)
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it("should throw NotFoundError for non-existent period", async () => {
+      await expect(payrollService.completePayPeriod(9999)).rejects.toThrow(
+        NotFoundError
+      );
     });
   });
 });

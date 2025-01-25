@@ -9,6 +9,7 @@ import {
 } from "@/shared/types/error.types";
 
 jest.mock("../service/payroll.service");
+jest.mock("@/modules/excel/service/excel.service.ts");
 
 describe("PayrollController", () => {
   let payrollController: PayrollController;
@@ -23,7 +24,7 @@ describe("PayrollController", () => {
     startDate: new Date("2024-03-01T00:00:00Z"),
     endDate: new Date("2024-03-15T23:59:59.999Z"),
     periodType: PayPeriodType.FIRST_HALF,
-    status: PayPeriodStatus.PENDING,
+    status: PayPeriodStatus.PROCESSING,
     createdAt: new Date(),
     updatedAt: new Date(),
     payrolls: [],
@@ -36,6 +37,7 @@ describe("PayrollController", () => {
       status: statusSpy,
       json: jsonSpy,
       send: jest.fn(),
+      setHeader: jest.fn(),
     };
 
     mockPayrollService = new PayrollService() as jest.Mocked<PayrollService>;
@@ -62,6 +64,39 @@ describe("PayrollController", () => {
 
       expect(statusSpy).toHaveBeenCalledWith(201);
       expect(jsonSpy).toHaveBeenCalledWith(mockPayPeriod);
+    });
+
+    it("should handle force recalculation", async () => {
+      const recalculatedPayPeriod = {
+        ...mockPayPeriod,
+        id: 2,
+      };
+      mockPayrollService.getOrCreatePayPeriod.mockResolvedValue(
+        recalculatedPayPeriod
+      );
+
+      mockRequest = {
+        body: {
+          periodType: PayPeriodType.FIRST_HALF,
+          year: 2024,
+          month: 3,
+          forceRecalculate: true,
+        },
+      };
+
+      await payrollController.createPayPeriod(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(statusSpy).toHaveBeenCalledWith(201);
+      expect(jsonSpy).toHaveBeenCalledWith(recalculatedPayPeriod);
+      expect(mockPayrollService.getOrCreatePayPeriod).toHaveBeenCalledWith(
+        PayPeriodType.FIRST_HALF,
+        2024,
+        3,
+        { forceRecalculate: true }
+      );
     });
 
     it("should handle ValidationError for invalid period type", async () => {
@@ -199,7 +234,7 @@ describe("PayrollController", () => {
         query: {
           startDate: "2024-03-01",
           endDate: "2024-03-31",
-          status: PayPeriodStatus.PENDING,
+          status: PayPeriodStatus.PROCESSING,
           periodType: PayPeriodType.FIRST_HALF,
         },
       };
@@ -213,85 +248,47 @@ describe("PayrollController", () => {
         expect.objectContaining({
           startDate: expect.any(Date),
           endDate: expect.any(Date),
-          status: PayPeriodStatus.PENDING,
+          status: PayPeriodStatus.PROCESSING,
           periodType: PayPeriodType.FIRST_HALF,
         })
       );
     });
   });
 
-  describe("calculatePeriodPayroll", () => {
-    it("should calculate payroll successfully", async () => {
-      mockPayrollService.calculatePeriodPayroll.mockResolvedValue();
-      mockPayrollService.getPayPeriodById.mockResolvedValue(mockPayPeriod);
-
-      mockRequest = {
-        params: { id: "1" },
-      };
-
-      await payrollController.calculatePeriodPayroll(
-        mockRequest as Request,
-        mockResponse as Response
-      );
-
-      expect(jsonSpy).toHaveBeenCalledWith(mockPayPeriod);
-    });
-
-    it("should handle ValidationError", async () => {
-      const validationError = new ValidationError(
-        "Pay period is not in PENDING status"
-      );
-      mockPayrollService.calculatePeriodPayroll.mockRejectedValue(
-        validationError
-      );
-
-      mockRequest = {
-        params: { id: "1" },
-      };
-
-      await payrollController.calculatePeriodPayroll(
-        mockRequest as Request,
-        mockResponse as Response
-      );
-
-      expect(statusSpy).toHaveBeenCalledWith(400);
-      expect(jsonSpy).toHaveBeenCalledWith({
-        code: "VALIDATION_ERROR",
-        message: "Pay period is not in PENDING status",
-      });
-    });
-  });
-
-  describe("updatePayPeriodStatus", () => {
-    it("should update status successfully", async () => {
-      const updatedPayPeriod = {
+  describe("completePayPeriod", () => {
+    it("should complete pay period successfully", async () => {
+      const completedPayPeriod = {
         ...mockPayPeriod,
-        status: PayPeriodStatus.PROCESSING,
+        status: PayPeriodStatus.COMPLETED,
       };
-      mockPayrollService.updatePayPeriodStatus.mockResolvedValue(
-        updatedPayPeriod
+
+      mockPayrollService.completePayPeriod.mockResolvedValue(
+        completedPayPeriod
       );
 
       mockRequest = {
         params: { id: "1" },
-        body: { status: PayPeriodStatus.PROCESSING },
       };
 
-      await payrollController.updatePayPeriodStatus(
+      await payrollController.completePayPeriod(
         mockRequest as Request,
         mockResponse as Response
       );
 
-      expect(jsonSpy).toHaveBeenCalledWith(updatedPayPeriod);
+      expect(jsonSpy).toHaveBeenCalledWith(completedPayPeriod);
     });
 
-    it("should handle invalid status", async () => {
+    it("should handle ValidationError for already completed period", async () => {
+      const validationError = new ValidationError(
+        "Pay period is already completed"
+      );
+      mockPayrollService.completePayPeriod.mockRejectedValue(validationError);
+
       mockRequest = {
         params: { id: "1" },
-        body: { status: "INVALID_STATUS" },
       };
 
-      await payrollController.updatePayPeriodStatus(
+      await payrollController.completePayPeriod(
         mockRequest as Request,
         mockResponse as Response
       );
@@ -299,20 +296,64 @@ describe("PayrollController", () => {
       expect(statusSpy).toHaveBeenCalledWith(400);
       expect(jsonSpy).toHaveBeenCalledWith({
         code: "VALIDATION_ERROR",
-        message: "Invalid status",
+        message: "Pay period is already completed",
       });
     });
 
     it("should handle NotFoundError", async () => {
       const notFoundError = new NotFoundError("PayPeriod");
-      mockPayrollService.updatePayPeriodStatus.mockRejectedValue(notFoundError);
+      mockPayrollService.completePayPeriod.mockRejectedValue(notFoundError);
 
       mockRequest = {
         params: { id: "999" },
-        body: { status: PayPeriodStatus.PROCESSING },
       };
 
-      await payrollController.updatePayPeriodStatus(
+      await payrollController.completePayPeriod(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(statusSpy).toHaveBeenCalledWith(404);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        code: "NOT_FOUND",
+        message: "PayPeriod not found",
+      });
+    });
+  });
+
+  describe("exportPayrollToExcel", () => {
+    it("should export payroll to excel successfully", async () => {
+      const mockBuffer = Buffer.from("test");
+      mockPayrollService.getPayPeriodById.mockResolvedValue(mockPayPeriod);
+      (
+        payrollController["excelService"].generatePayrollReport as jest.Mock
+      ).mockResolvedValue(mockBuffer);
+
+      mockRequest = {
+        params: { id: "1" },
+      };
+
+      await payrollController.exportPayrollToExcel(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockResponse.setHeader).toHaveBeenCalledWith(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      expect(mockResponse.send).toHaveBeenCalledWith(mockBuffer);
+    });
+
+    it("should handle NotFoundError", async () => {
+      const notFoundError = new NotFoundError("PayPeriod");
+      mockPayrollService.getPayPeriodById.mockRejectedValue(notFoundError);
+
+      mockRequest = {
+        params: { id: "999" },
+      };
+
+      await payrollController.exportPayrollToExcel(
         mockRequest as Request,
         mockResponse as Response
       );

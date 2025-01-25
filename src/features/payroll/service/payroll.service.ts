@@ -1,5 +1,4 @@
 import { AppDataSource } from "@/app/config/database";
-import { Employee } from "@/entities/Employee";
 import {
   PayPeriod,
   PayPeriodStatus,
@@ -14,10 +13,8 @@ import {
 } from "@/shared/types/error.types";
 import {
   GetOrCreatePayPeriodOptions,
-  isValidStatusTransition,
   PaginatedPayPeriodResponse,
   PayPeriodFilters,
-  STATUS_TRANSITION_ERRORS,
 } from "@/shared/types/payroll.types";
 import { Between, Repository } from "typeorm";
 
@@ -39,13 +36,13 @@ export class PayrollService {
   ): { startDate: Date; endDate: Date } {
     if (isFirstHalf) {
       // Day 1 of the month 00:00:00 UTC
-      const startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
+      const startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
       // Day 15 of the month 23:59:59.999 UTC
       const endDate = new Date(Date.UTC(year, month - 1, 15, 23, 59, 59, 999));
       return { startDate, endDate };
     } else {
       // Day 16 of the month 00:00:00 UTC
-      const startDate = new Date(Date.UTC(year, month - 1, 16, 0, 0, 0));
+      const startDate = new Date(Date.UTC(year, month - 1, 16, 0, 0, 0, 0));
       // End day of the month 23:59:59.999 UTC
       const lastDay = new Date(year, month, 0).getDate();
       const endDate = new Date(
@@ -103,6 +100,10 @@ export class PayrollService {
 
       if (!payPeriod) {
         throw new NotFoundError("Pay period not found");
+      }
+
+      if (payPeriod.status === PayPeriodStatus.COMPLETED) {
+        throw new ValidationError("Cannot calculate completed pay period");
       }
 
       // Get timesheets for the period
@@ -236,7 +237,7 @@ export class PayrollService {
       payPeriod.status = PayPeriodStatus.COMPLETED;
       return await this.payPeriodRepository.save(payPeriod);
     } catch (error) {
-      if (error instanceof ValidationError) {
+      if (error instanceof NotFoundError || error instanceof ValidationError) {
         throw error;
       }
       throw new DatabaseError(`Error completing pay period: ${error.message}`);
