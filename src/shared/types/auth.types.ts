@@ -3,7 +3,7 @@ export interface LoginDto {
   password: string;
 }
 
-export interface TakenPayload {
+export interface TokenPayload {
   id: number;
   email: string;
   role: string;
