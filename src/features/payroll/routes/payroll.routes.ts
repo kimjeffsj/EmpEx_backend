@@ -12,8 +12,8 @@ const payrollController = new PayrollController();
  * @swagger
  * /api/payrolls/periods:
  *   post:
- *     summary: Create a new pay period
- *     description: Create or get an existing pay period for specified year and month
+ *     summary: Create or get a pay period
+ *     description: Create a new pay period or get existing one with option to force recalculation
  *     tags: [Payroll]
  *     requestBody:
  *       required: true
@@ -39,6 +39,10 @@ const payrollController = new PayrollController();
  *                 minimum: 1
  *                 maximum: 12
  *                 description: Month for the pay period
+ *               forceRecalculate:
+ *                 type: boolean
+ *                 description: Force recalculation of existing pay period
+ *                 default: false
  *     responses:
  *       201:
  *         description: Pay period created or retrieved successfully
@@ -58,6 +62,7 @@ payrollRouter.post(
   validate(validatePayPeriodInfos.create),
   payrollController.createPayPeriod.bind(payrollController)
 );
+
 /**
  * @swagger
  * /api/payrolls/periods/{id}:
@@ -96,7 +101,7 @@ payrollRouter.get(
  * /api/payrolls/periods:
  *   get:
  *     summary: Get all pay periods
- *     description: Retrieve a list of pay periods with optional filters
+ *     description: Retrieve a list of pay periods with filtering options
  *     tags: [Payroll]
  *     parameters:
  *       - in: query
@@ -115,7 +120,7 @@ payrollRouter.get(
  *         name: status
  *         schema:
  *           type: string
- *           enum: [PENDING, PROCESSING, COMPLETED]
+ *           enum: [PROCESSING, COMPLETED]
  *         description: Filter by status
  *       - in: query
  *         name: periodType
@@ -137,7 +142,7 @@ payrollRouter.get(
  *         description: Number of items per page
  *     responses:
  *       200:
- *         description: List of pay periods
+ *         description: List of pay periods retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -164,10 +169,10 @@ payrollRouter.get(
 
 /**
  * @swagger
- * /api/payrolls/periods/{id}/calculate:
+ * /api/payrolls/periods/{id}/complete:
  *   post:
- *     summary: Calculate payroll for a period
- *     description: Calculate payroll for all employees in the specified pay period
+ *     summary: Complete a pay period
+ *     description: Mark a pay period as completed
  *     tags: [Payroll]
  *     parameters:
  *       - in: path
@@ -178,13 +183,13 @@ payrollRouter.get(
  *         description: Pay period ID
  *     responses:
  *       200:
- *         description: Payroll calculated successfully
+ *         description: Pay period completed successfully
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/PayPeriod'
  *       400:
- *         description: Invalid pay period status or validation error
+ *         description: Pay period already completed or invalid state
  *         content:
  *           application/json:
  *             schema:
@@ -197,61 +202,8 @@ payrollRouter.get(
  *               $ref: '#/components/schemas/Error'
  */
 payrollRouter.post(
-  "/periods/:id/calculate",
-  payrollController.calculatePeriodPayroll.bind(payrollController)
-);
-
-/**
- * @swagger
- * /api/payrolls/periods/{id}/status:
- *   put:
- *     summary: Update pay period status
- *     description: Update the status of a specific pay period
- *     tags: [Payroll]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Pay period ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - status
- *             properties:
- *               status:
- *                 type: string
- *                 enum: [PENDING, PROCESSING, COMPLETED]
- *                 description: New status for the pay period
- *     responses:
- *       200:
- *         description: Pay period status updated successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/PayPeriod'
- *       400:
- *         description: Invalid status
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       404:
- *         description: Pay period not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-payrollRouter.put(
-  "/periods/:id/status",
-  validate(validatePayPeriodInfos.updateStatus),
-  payrollController.updatePayPeriodStatus.bind(payrollController)
+  "/periods/:id/complete",
+  payrollController.completePayPeriod.bind(payrollController)
 );
 
 /**

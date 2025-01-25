@@ -13,6 +13,7 @@ import {
   ValidationError,
 } from "@/shared/types/error.types";
 import {
+  GetOrCreatePayPeriodOptions,
   isValidStatusTransition,
   PaginatedPayPeriodResponse,
   PayPeriodFilters,
@@ -58,7 +59,8 @@ export class PayrollService {
   async getOrCreatePayPeriod(
     periodType: PayPeriodType,
     year: number,
-    month: number
+    month: number,
+    options: GetOrCreatePayPeriodOptions = { forceRecalculate: false }
   ): Promise<PayPeriod> {
     try {
       const { startDate, endDate } = this.getUTCDateRange(
@@ -68,6 +70,7 @@ export class PayrollService {
       );
 
       // Query for existing pay period
+
       const existingPeriod = await this.payPeriodRepository.findOne({
         where: {
           startDate: Between(startDate, endDate),
@@ -76,30 +79,18 @@ export class PayrollService {
         relations: ["payrolls", "payrolls.employee"],
       });
 
-      if (existingPeriod) {
-        return existingPeriod;
-      }
-
-      // Create period
-      const newPeriod = await this.payPeriodRepository.save(
-        this.payPeriodRepository.create({
+      if (!existingPeriod || options.forceRecalculate) {
+        await this.cleanupExistingPayPeriod(existingPeriod);
+        return await this.createAndCalculatePayPeriod(
           startDate,
           endDate,
-          periodType,
-          status: PayPeriodStatus.PENDING,
-        })
-      );
-
-      // Calculate payroll immediately after creation
-      await this.calculatePeriodPayroll(newPeriod.id);
-
-      // Fetch and return the complete pay period with calculated payrolls
-      return await this.getPayPeriodById(newPeriod.id);
-    } catch (error) {
-      if (error instanceof ValidationError) {
-        throw error;
+          periodType
+        );
       }
-      throw new DatabaseError(`Error creating pay period: ${error.message}`);
+
+      return existingPeriod;
+    } catch (error) {
+      throw new DatabaseError(`Error processing pay period: ${error.message}`);
     }
   }
 
@@ -112,11 +103,6 @@ export class PayrollService {
 
       if (!payPeriod) {
         throw new NotFoundError("Pay period not found");
-      }
-
-      // Validate status
-      if (payPeriod.status !== PayPeriodStatus.PENDING) {
-        throw new ValidationError("Pay period is not in PENDING");
       }
 
       // Get timesheets for the period
@@ -134,9 +120,6 @@ export class PayrollService {
       for (const [employeeId, sheets] of employeeTimesheets.entries()) {
         await this.createEmployeePayroll(employeeId, payPeriod.id, sheets);
       }
-
-      // Update pay period status
-      await this.updatePayPeriodStatus(periodId, PayPeriodStatus.PROCESSING);
     } catch (error) {
       if (error instanceof NotFoundError || error instanceof ValidationError) {
         throw error;
@@ -241,33 +224,52 @@ export class PayrollService {
     }
   }
 
-  // Update pay period status
-  async updatePayPeriodStatus(
-    id: number,
-    newStatus: PayPeriodStatus
-  ): Promise<PayPeriod> {
+  // Complete pay period status
+  async completePayPeriod(id: number): Promise<PayPeriod> {
     try {
       const payPeriod = await this.getPayPeriodById(id);
 
-      if (!payPeriod) {
-        throw new NotFoundError("Pay period not found");
+      if (payPeriod.status === PayPeriodStatus.COMPLETED) {
+        throw new ValidationError("Pay period is already completed");
       }
 
-      // Check if status transition is valid
-      if (!isValidStatusTransition(payPeriod.status, newStatus)) {
-        throw new ValidationError(STATUS_TRANSITION_ERRORS[payPeriod.status]);
-      }
-
-      payPeriod.status = newStatus;
+      payPeriod.status = PayPeriodStatus.COMPLETED;
       return await this.payPeriodRepository.save(payPeriod);
     } catch (error) {
-      if (error instanceof NotFoundError) {
+      if (error instanceof ValidationError) {
         throw error;
       }
-      throw new DatabaseError(
-        `Error updating pay period status: ${error.message}`
-      );
+      throw new DatabaseError(`Error completing pay period: ${error.message}`);
     }
+  }
+
+  // Delete existing Pay Period
+  private async cleanupExistingPayPeriod(
+    existingPeriod?: PayPeriod
+  ): Promise<void> {
+    if (existingPeriod) {
+      await this.payrollRepository.delete({ payPeriodId: existingPeriod.id });
+      await this.payPeriodRepository.delete(existingPeriod.id);
+    }
+  }
+
+  // Create and Calculate pay period
+  private async createAndCalculatePayPeriod(
+    startDate: Date,
+    endDate: Date,
+    periodType: PayPeriodType
+  ): Promise<PayPeriod> {
+    const newPeriod = await this.payPeriodRepository.save(
+      this.payPeriodRepository.create({
+        startDate,
+        endDate,
+        periodType,
+        status: PayPeriodStatus.PROCESSING,
+      })
+    );
+
+    await this.calculatePeriodPayroll(newPeriod.id);
+    return await this.getPayPeriodById(newPeriod.id);
   }
 
   // Get pay period by ID
