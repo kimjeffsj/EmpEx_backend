@@ -6,7 +6,9 @@
     "dev": "nodemon -r tsconfig-paths/register src/server.ts",
     "build": "tsc",
     "start": "node -r tsconfig-paths/register dist/server.ts",
-    "test": "TZ=UTC NODE_ENV=test jest --runInBand --verbose --coverage"
+    "test": "TZ=UTC NODE_ENV=test jest --runInBand --verbose --coverage",
+    "seed:manager": "ts-node -r tsconfig-paths/register src/database/seeds/createManager.ts"
+
   },
   "keywords": [],
   "author": "",
