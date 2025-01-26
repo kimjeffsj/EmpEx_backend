@@ -7,7 +7,7 @@ import {
   PrimaryGeneratedColumn,
   Unique,
 } from "typeorm";
-import { User } from "./User";
+import { User, UserRole } from "./User";
 import { Employee } from "./Employee";
 
 @Entity("employee_users")
@@ -22,14 +22,25 @@ export class EmployeeUser {
   @Column()
   employeeId: number;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, (user) => user.employeeUsers, {
+    onDelete: "CASCADE",
+  })
   @JoinColumn({ name: "userId" })
   user: User;
 
-  @ManyToOne(() => Employee)
+  @ManyToOne(() => Employee, {
+    onDelete: "CASCADE",
+  })
   @JoinColumn({ name: "employeeId" })
   employee: Employee;
 
   @CreateDateColumn({ type: "timestamptz" })
   created_at: Date;
+
+  // Validate user role before insert/update
+  async validateUserRole() {
+    if (this.user && this.user.role !== UserRole.EMPLOYEE) {
+      throw new Error("Only employees can be associated with employee records");
+    }
+  }
 }

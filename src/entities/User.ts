@@ -1,10 +1,14 @@
 import {
+  BeforeInsert,
+  BeforeUpdate,
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from "typeorm";
+import { EmployeeUser } from "./EmployeeUser";
 
 export enum UserRole {
   MANAGER = "MANAGER",
@@ -20,7 +24,7 @@ export class User {
   email: string;
 
   @Column()
-  password_has: string;
+  password_hash: string;
 
   @Column({ length: 50 })
   first_name: string;
@@ -38,12 +42,35 @@ export class User {
   @Column({ default: true })
   is_active: boolean;
 
+  @Column({ type: "timestamptz", nullable: true })
+  last_login: Date;
+
   @CreateDateColumn({ type: "timestamptz" })
   created_at: Date;
 
   @UpdateDateColumn({ type: "timestamptz" })
   updated_at: Date;
 
-  @Column({ type: "timestamptz", nullable: true })
-  last_login: Date;
+  @OneToMany(() => EmployeeUser, (employeeUser) => employeeUser.user)
+  employeeUsers: EmployeeUser[];
+
+  // Type guard for Manager
+  isManager(): this is User & { role: UserRole.MANAGER } {
+    return this.role === UserRole.MANAGER;
+  }
+
+  // Type guard for Employee
+  isEmployee(): this is User & { role: UserRole.EMPLOYEE } {
+    return this.role === UserRole.EMPLOYEE;
+  }
+
+  @BeforeInsert()
+  @BeforeUpdate()
+  validateRole() {
+    if (this.role === UserRole.EMPLOYEE && !this.employeeUsers?.length) {
+      throw new Error(
+        "Employee user must be associated with an employee record"
+      );
+    }
+  }
 }
