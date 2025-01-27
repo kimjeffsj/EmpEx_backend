@@ -7,12 +7,14 @@ import {
   ValidationError,
 } from "@/shared/types/error.types";
 import { DatabaseError } from "pg";
+import { DataSource } from "typeorm";
+import { DataSourceConfig } from "@/app/config/data-source.config";
 
 export class AuthController {
   private authService: AuthService;
 
-  constructor() {
-    this.authService = new AuthService();
+  constructor(dataSource: DataSource = DataSourceConfig.getInstance()) {
+    this.authService = new AuthService(dataSource);
   }
 
   async login(req: Request, res: Response) {

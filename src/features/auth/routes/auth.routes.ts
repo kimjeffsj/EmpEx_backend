@@ -8,9 +8,11 @@ import {
 import { validate } from "@/features/employee/middleware/validation.middleware";
 import { validateAuth } from "../middleware/validation.middleware";
 import { UserRole } from "@/entities/User";
+import { DataSourceConfig } from "@/app/config/data-source.config";
 
 export const authRouter = Router();
-const authController = new AuthController();
+const dataSource = DataSourceConfig.getInstance();
+const authController = new AuthController(dataSource);
 
 /**
  * @swagger

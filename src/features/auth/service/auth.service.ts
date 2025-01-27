@@ -15,10 +15,11 @@ import {
   ValidationError,
 } from "@/shared/types/error.types";
 import { Injectable } from "@nestjs/common";
-import { Repository } from "typeorm";
+import { DataSource, Repository } from "typeorm";
 import { sign, verify } from "jsonwebtoken";
 import { compare, hash } from "bcrypt";
 import { Employee } from "@/entities/Employee";
+import { validatePassword } from "../middleware/validation.middleware";
 
 @Injectable()
 export class AuthService {
@@ -26,10 +27,10 @@ export class AuthService {
   private employeeUserRepository: Repository<EmployeeUser>;
   private employeeRepository: Repository<Employee>;
 
-  constructor() {
-    this.userRepository = AppDataSource.getRepository(User);
-    this.employeeUserRepository = AppDataSource.getRepository(EmployeeUser);
-    this.employeeRepository = AppDataSource.getRepository(Employee);
+  constructor(private dataSource: DataSource) {
+    this.userRepository = this.dataSource.getRepository(User);
+    this.employeeUserRepository = this.dataSource.getRepository(EmployeeUser);
+    this.employeeRepository = this.dataSource.getRepository(Employee);
   }
 
   async login(loginDto: LoginDto): Promise<AuthResponse> {
@@ -148,7 +149,7 @@ export class AuthService {
       throw new ValidationError("Password must be at least 6 characters long");
     }
 
-    const queryRunner = AppDataSource.createQueryRunner();
+    const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
@@ -213,10 +214,8 @@ export class AuthService {
     }
 
     if (updateData.password) {
-      if (updateData.password.length < 6) {
-        throw new ValidationError(
-          "Password must be at least 6 characters long"
-        );
+      if (!validatePassword(updateData.password)) {
+        throw new ValidationError("Password must meet security requirements");
       }
       updateData.password = await hash(updateData.password, 10);
     }

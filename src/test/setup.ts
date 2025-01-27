@@ -1,6 +1,8 @@
 import { TestDataSource } from "@/app/config/test-database";
 
 beforeAll(async () => {
+  jest.setTimeout(30000);
+
   try {
     if (TestDataSource.isInitialized) {
       await TestDataSource.destroy();
@@ -11,6 +13,12 @@ beforeAll(async () => {
   } catch (error) {
     console.error("Error during Test Database initialization", error);
     throw error;
+  }
+});
+
+beforeEach(async () => {
+  if (TestDataSource.isInitialized) {
+    await TestDataSource.synchronize(true);
   }
 });
 
