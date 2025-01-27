@@ -10,21 +10,14 @@ import {
   ValidationError,
   DuplicateError,
 } from "@/shared/types/error.types";
+import {
+  createTestEmployee,
+  mockEmployeeData,
+} from "@/test/employee.fixture.ts";
 
 describe("EmployeeService", () => {
   let employeeService: EmployeeService;
   let testEmployee: Employee;
-
-  const mockEmployeeData: CreateEmployeeDto = {
-    firstName: "John",
-    lastName: "Doe",
-    sinNumber: "123456789",
-    email: "john@example.com",
-    address: "123 Main St",
-    dateOfBirth: new Date("1990-01-01"),
-    payRate: 25.0,
-    startDate: new Date(),
-  };
 
   beforeAll(async () => {
     if (!TestDataSource.isInitialized) {
@@ -39,7 +32,7 @@ describe("EmployeeService", () => {
     if (TestDataSource.isInitialized) {
       await TestDataSource.synchronize(true);
     }
-    testEmployee = await employeeService.createEmployee(mockEmployeeData);
+    testEmployee = await createTestEmployee(employeeService);
   });
 
   afterAll(async () => {

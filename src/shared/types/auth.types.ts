@@ -51,11 +51,6 @@ export interface TokenPayload {
   employeeId?: number; // Only for employees
 }
 
-export interface TokenPair {
-  accessToken: string;
-  refreshToken: string;
-}
-
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;

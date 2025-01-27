@@ -7,21 +7,14 @@ import {
   UpdateTimesheetDto,
 } from "@/shared/types/timesheet.types";
 import { NotFoundError, ValidationError } from "@/shared/types/error.types";
+import {
+  createTestEmployeeRaw,
+  mockEmployeeData,
+} from "@/test/employee.fixture.ts";
 
 describe("TimesheetService", () => {
   let timesheetService: TimesheetService;
   let testEmployee: Employee;
-
-  const mockEmployeeData = {
-    firstName: "John",
-    lastName: "Doe",
-    sinNumber: "123456789",
-    email: "john@example.com",
-    address: "123 Main St",
-    dateOfBirth: new Date("1990-01-01"),
-    payRate: 25.0,
-    startDate: new Date(),
-  };
 
   beforeAll(async () => {
     if (!TestDataSource.isInitialized) {
@@ -40,8 +33,7 @@ describe("TimesheetService", () => {
       await TestDataSource.synchronize(true);
     }
 
-    const employeeRepo = TestDataSource.getRepository(Employee);
-    testEmployee = await employeeRepo.save(mockEmployeeData);
+    testEmployee = await createTestEmployeeRaw();
   });
 
   afterAll(async () => {

@@ -12,6 +12,7 @@ import {
   DuplicateError,
   DatabaseError,
 } from "@/shared/types/error.types";
+import { mockEmployeeData } from "@/test/employee.fixture.ts";
 
 // EmployeeService Mock
 jest.mock("../service/employee.service");
@@ -23,17 +24,6 @@ describe("EmployeeController", () => {
   let mockResponse: Partial<Response>;
   let jsonSpy: jest.Mock;
   let statusSpy: jest.Mock;
-
-  const mockEmployeeData: CreateEmployeeDto = {
-    firstName: "John",
-    lastName: "Doe",
-    sinNumber: "123456789",
-    email: "john@example.com",
-    address: "123 Main St",
-    dateOfBirth: new Date("1990-01-01"),
-    payRate: 25.0,
-    startDate: new Date(),
-  };
 
   const mockEmployee = {
     id: 1,
