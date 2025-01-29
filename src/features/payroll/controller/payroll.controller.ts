@@ -10,15 +10,16 @@ import { PayPeriodFilters } from "@/shared/types/payroll.types";
 import { ExcelService } from "@/modules/excel/service/excel.service";
 import { EmployeeService } from "@/features/employee/service/employee.service";
 import { getPayPeriodCode } from "../../../shared/utils/payPeriodFormatter.utils";
+import { DataSource } from "typeorm";
 
 export class PayrollController {
   private payrollService: PayrollService;
   private excelService: ExcelService;
   private employeeService: EmployeeService;
 
-  constructor() {
-    this.employeeService = new EmployeeService();
-    this.payrollService = new PayrollService();
+  constructor(dataSource: DataSource) {
+    this.employeeService = new EmployeeService(dataSource);
+    this.payrollService = new PayrollService(dataSource);
     this.excelService = new ExcelService(
       this.payrollService,
       this.employeeService

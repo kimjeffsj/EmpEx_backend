@@ -1,4 +1,3 @@
-import { AppDataSource } from "@/app/config/database";
 import { Employee } from "@/entities/Employee";
 import {
   CreateEmployeeDto,
@@ -12,13 +11,13 @@ import {
   NotFoundError,
   ValidationError,
 } from "@/shared/types/error.types";
-import { QueryFailedError, Repository } from "typeorm";
+import { DataSource, QueryFailedError, Repository } from "typeorm";
 
 export class EmployeeService {
   private employeeRepository: Repository<Employee>;
 
-  constructor() {
-    this.employeeRepository = AppDataSource.getRepository(Employee);
+  constructor(private dataSource: DataSource) {
+    this.employeeRepository = this.dataSource.getRepository(Employee);
   }
 
   async createEmployee(employeeData: CreateEmployeeDto): Promise<Employee> {

@@ -7,6 +7,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "@/shared/types/error.types";
+import { TestDataSource } from "@/app/config/test-database";
 
 jest.mock("../service/payroll.service");
 jest.mock("@/modules/excel/service/excel.service.ts");
@@ -40,8 +41,10 @@ describe("PayrollController", () => {
       setHeader: jest.fn(),
     };
 
-    mockPayrollService = new PayrollService() as jest.Mocked<PayrollService>;
-    payrollController = new PayrollController();
+    mockPayrollService = new PayrollService(
+      TestDataSource
+    ) as jest.Mocked<PayrollService>;
+    payrollController = new PayrollController(TestDataSource);
     payrollController["payrollService"] = mockPayrollService;
   });
 

@@ -23,7 +23,7 @@ describe("EmployeeService", () => {
     if (!TestDataSource.isInitialized) {
       await TestDataSource.initialize();
     }
-    employeeService = new EmployeeService();
+    employeeService = new EmployeeService(TestDataSource);
     employeeService["employeeRepository"] =
       TestDataSource.getRepository(Employee);
   });

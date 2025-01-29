@@ -12,15 +12,15 @@ import {
   TimesheetFilters,
   UpdateTimesheetDto,
 } from "@/shared/types/timesheet.types";
-import { QueryFailedError, Repository } from "typeorm";
+import { DataSource, QueryFailedError, Repository } from "typeorm";
 
 export class TimesheetService {
   private timesheetRepository: Repository<Timesheet>;
   private employeeRepository: Repository<Employee>;
 
-  constructor() {
-    this.timesheetRepository = AppDataSource.getRepository(Timesheet);
-    this.employeeRepository = AppDataSource.getRepository(Employee);
+  constructor(private dataSource: DataSource) {
+    this.timesheetRepository = this.dataSource.getRepository(Timesheet);
+    this.employeeRepository = this.dataSource.getRepository(Employee);
   }
 
   private async calculateTimesheet(

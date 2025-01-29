@@ -4,14 +4,15 @@ import cors from "cors";
 import helmet from "helmet";
 import dotenv from "dotenv";
 import swaggerUi from "swagger-ui-express";
-import { AppDataSource } from "@/app/config/database";
 import { specs } from "./app/config/swagger";
 import { errorHandler } from "./shared/middleware/error.middleware";
 
 // Routers
-import { employeeRouter } from "./features/employee/routes/employee.routes";
-import { timesheetRouter } from "./features/timesheet/routes/timesheet.routes";
-import { payrollRouter } from "./features/payroll/routes/payroll.routes";
+import { createTimesheetRouter } from "./features/timesheet/routes/timesheet.routes";
+import { createPayrollRouter } from "./features/payroll/routes/payroll.routes";
+import { createEmployeeRouter } from "./features/employee/routes/employee.routes";
+import { createAuthRouter } from "./features/auth/routes/auth.routes";
+import { getDataSource } from "./app/config/data-source";
 
 // Environment variables setup
 dotenv.config();
@@ -42,11 +43,6 @@ app.get("/", (req, res) => {
   res.send("EmpEx API");
 });
 
-// Routers
-app.use("/api/employees", employeeRouter);
-app.use("/api/timesheets", timesheetRouter);
-app.use("/api/payrolls", payrollRouter);
-
 // Error handling middleware
 app.use(errorHandler);
 
@@ -54,8 +50,14 @@ app.use(errorHandler);
 const startServer = async () => {
   try {
     // Database connection
-    await AppDataSource.initialize();
+    const dataSource = getDataSource();
+    await dataSource.initialize();
     console.log("Database connected successfully");
+
+    app.use("/api/employees", createEmployeeRouter(dataSource));
+    app.use("/api/timesheets", createTimesheetRouter(dataSource));
+    app.use("/api/payrolls", createPayrollRouter(dataSource));
+    app.use("/api/auth", createAuthRouter(dataSource));
 
     // Start server
     app.listen(port, () => {

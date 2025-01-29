@@ -12,12 +12,13 @@ import {
   NotFoundError,
   ValidationError,
 } from "@/shared/types/error.types";
+import { DataSource } from "typeorm";
 
 export class EmployeeController {
   private employeeService: EmployeeService;
 
-  constructor() {
-    this.employeeService = new EmployeeService();
+  constructor(dataSource: DataSource) {
+    this.employeeService = new EmployeeService(dataSource);
   }
 
   // Create new employee

@@ -16,17 +16,17 @@ import {
   PaginatedPayPeriodResponse,
   PayPeriodFilters,
 } from "@/shared/types/payroll.types";
-import { Between, Repository } from "typeorm";
+import { Between, DataSource, Repository } from "typeorm";
 
 export class PayrollService {
   private payrollRepository: Repository<Payroll>;
   private payPeriodRepository: Repository<PayPeriod>;
   private timesheetRepository: Repository<Timesheet>;
 
-  constructor() {
-    this.payrollRepository = AppDataSource.getRepository(Payroll);
-    this.payPeriodRepository = AppDataSource.getRepository(PayPeriod);
-    this.timesheetRepository = AppDataSource.getRepository(Timesheet);
+  constructor(private dataSource: DataSource) {
+    this.payrollRepository = this.dataSource.getRepository(Payroll);
+    this.payPeriodRepository = this.dataSource.getRepository(PayPeriod);
+    this.timesheetRepository = this.dataSource.getRepository(Timesheet);
   }
 
   private getUTCDateRange(

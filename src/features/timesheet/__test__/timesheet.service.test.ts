@@ -7,10 +7,7 @@ import {
   UpdateTimesheetDto,
 } from "@/shared/types/timesheet.types";
 import { NotFoundError, ValidationError } from "@/shared/types/error.types";
-import {
-  createTestEmployeeRaw,
-  mockEmployeeData,
-} from "@/test/employee.fixture.ts";
+import { createTestEmployeeRaw } from "@/test/employee.fixture.ts";
 
 describe("TimesheetService", () => {
   let timesheetService: TimesheetService;
@@ -20,7 +17,7 @@ describe("TimesheetService", () => {
     if (!TestDataSource.isInitialized) {
       await TestDataSource.initialize();
     }
-    timesheetService = new TimesheetService();
+    timesheetService = new TimesheetService(TestDataSource);
 
     timesheetService["timesheetRepository"] =
       TestDataSource.getRepository(Timesheet);
@@ -33,7 +30,7 @@ describe("TimesheetService", () => {
       await TestDataSource.synchronize(true);
     }
 
-    testEmployee = await createTestEmployeeRaw();
+    testEmployee = await createTestEmployeeRaw(TestDataSource);
   });
 
   afterAll(async () => {

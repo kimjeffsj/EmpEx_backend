@@ -43,7 +43,7 @@ describe("AuthService", () => {
     if (TestDataSource.isInitialized) {
       await TestDataSource.synchronize(true);
     }
-    testEmployee = await createTestEmployeeRaw();
+    testEmployee = await createTestEmployeeRaw(TestDataSource);
   });
 
   // Cleanup after all tests
@@ -147,7 +147,7 @@ describe("AuthService", () => {
         employeeId: testEmployee.id,
       });
 
-      const newEmployee = await createTestEmployeeRaw();
+      const newEmployee = await createTestEmployeeRaw(TestDataSource);
 
       // Second creation with same email
       await expect(

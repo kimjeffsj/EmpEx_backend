@@ -8,12 +8,11 @@ import {
 } from "@/shared/types/error.types";
 import { DatabaseError } from "pg";
 import { DataSource } from "typeorm";
-import { DataSourceConfig } from "@/app/config/data-source.config";
 
 export class AuthController {
   private authService: AuthService;
 
-  constructor(dataSource: DataSource = DataSourceConfig.getInstance()) {
+  constructor(dataSource: DataSource) {
     this.authService = new AuthService(dataSource);
   }
 

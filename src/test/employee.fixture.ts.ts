@@ -1,6 +1,7 @@
 import { Employee } from "@/entities/Employee";
 import { EmployeeService } from "@/features/employee/service/employee.service";
 import { TestDataSource } from "@/app/config/test-database";
+import { DataSource } from "typeorm";
 
 export const mockEmployeeData = {
   firstName: "John",
@@ -17,6 +18,6 @@ export const createTestEmployee = async (employeeService: EmployeeService) => {
   return await employeeService.createEmployee(mockEmployeeData);
 };
 
-export const createTestEmployeeRaw = async () => {
-  return await TestDataSource.getRepository(Employee).save(mockEmployeeData);
+export const createTestEmployeeRaw = async (dataSource: DataSource) => {
+  return await dataSource.getRepository(Employee).save(mockEmployeeData);
 };

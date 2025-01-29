@@ -30,7 +30,7 @@ describe("PayrollService", () => {
     timesheetRepository = TestDataSource.getRepository(Timesheet);
     employeeRepository = TestDataSource.getRepository(Employee);
 
-    payrollService = new PayrollService();
+    payrollService = new PayrollService(TestDataSource);
 
     payrollService["payrollRepository"] = payrollRepository;
     payrollService["payPeriodRepository"] = payPeriodRepository;
@@ -43,7 +43,7 @@ describe("PayrollService", () => {
       await TestDataSource.synchronize(true);
     }
 
-    testEmployee = await createTestEmployeeRaw();
+    testEmployee = await createTestEmployeeRaw(TestDataSource);
   });
 
   afterAll(async () => {

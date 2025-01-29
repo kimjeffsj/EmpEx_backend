@@ -13,6 +13,7 @@ import {
   DatabaseError,
 } from "@/shared/types/error.types";
 import { mockEmployeeData } from "@/test/employee.fixture.ts";
+import { TestDataSource } from "@/app/config/test-database";
 
 // EmployeeService Mock
 jest.mock("../service/employee.service");
@@ -43,8 +44,10 @@ describe("EmployeeController", () => {
     };
 
     // EmployeeService mocking
-    mockEmployeeService = new EmployeeService() as jest.Mocked<EmployeeService>;
-    employeeController = new EmployeeController();
+    mockEmployeeService = new EmployeeService(
+      TestDataSource
+    ) as jest.Mocked<EmployeeService>;
+    employeeController = new EmployeeController(TestDataSource);
     employeeController["employeeService"] = mockEmployeeService;
   });
 
