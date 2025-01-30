@@ -1,12 +1,11 @@
 import { EmployeeService } from "@/features/employee/service/employee.service";
 import { PayrollService } from "@/features/payroll/service/payroll.service";
-import { Injectable } from "@nestjs/common";
+
 import { ExcelGenerateOptions } from "../interfaces/excel.types";
 import * as Excel from "exceljs";
 import { formatDate, formatSIN } from "../utils/formatters";
 import { getPayPeriodCode } from "@/shared/utils/payPeriodFormatter.utils";
 
-@Injectable()
 export class ExcelService {
   constructor(
     private payrollService: PayrollService,
