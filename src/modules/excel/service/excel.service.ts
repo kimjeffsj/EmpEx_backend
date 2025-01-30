@@ -12,8 +12,8 @@ export class ExcelService {
     private payrollService: PayrollService,
     private employeeService: EmployeeService
   ) {
-    this.payrollService = payrollService;
-    this.employeeService = employeeService;
+    // this.payrollService = payrollService;
+    // this.employeeService = employeeService;
   }
 
   private async createWorkbook(

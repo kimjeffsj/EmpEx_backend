@@ -10,12 +10,13 @@ import {
   NotFoundError,
   ValidationError,
 } from "@/shared/types/error.types";
+import { DataSource } from "typeorm";
 
 export class TimesheetController {
   private timesheetService: TimesheetService;
 
-  constructor() {
-    this.timesheetService = new TimesheetService();
+  constructor(dataSource: DataSource) {
+    this.timesheetService = new TimesheetService(dataSource);
   }
 
   async createTimesheet(req: Request, res: Response) {

@@ -10,6 +10,7 @@ import { Payroll, PayrollStatus } from "@/entities/Payroll";
 import { Timesheet } from "@/entities/Timesheet";
 import { NotFoundError, ValidationError } from "@/shared/types/error.types";
 import { Repository } from "typeorm";
+import { createTestEmployeeRaw } from "@/test/employee.fixture.ts";
 
 describe("PayrollService", () => {
   let payrollService: PayrollService;
@@ -18,17 +19,6 @@ describe("PayrollService", () => {
   let payPeriodRepository: Repository<PayPeriod>;
   let timesheetRepository: Repository<Timesheet>;
   let employeeRepository: Repository<Employee>;
-
-  const mockEmployeeData = {
-    firstName: "John",
-    lastName: "Doe",
-    sinNumber: "123456789",
-    email: "john@example.com",
-    address: "123 Main St",
-    dateOfBirth: new Date("1990-01-01"),
-    payRate: 25.0,
-    startDate: new Date(),
-  };
 
   beforeAll(async () => {
     if (!TestDataSource.isInitialized) {
@@ -40,8 +30,8 @@ describe("PayrollService", () => {
     timesheetRepository = TestDataSource.getRepository(Timesheet);
     employeeRepository = TestDataSource.getRepository(Employee);
 
-    payrollService = new PayrollService();
-    // Set up private repositories for the service
+    payrollService = new PayrollService(TestDataSource);
+
     payrollService["payrollRepository"] = payrollRepository;
     payrollService["payPeriodRepository"] = payPeriodRepository;
     payrollService["timesheetRepository"] = timesheetRepository;
@@ -53,7 +43,7 @@ describe("PayrollService", () => {
       await TestDataSource.synchronize(true);
     }
 
-    testEmployee = await employeeRepository.save(mockEmployeeData);
+    testEmployee = await createTestEmployeeRaw(TestDataSource);
   });
 
   afterAll(async () => {

@@ -8,6 +8,7 @@ import { TimesheetService } from "../service/timesheet.service";
 import { NotFoundError, ValidationError } from "@/shared/types/error.types";
 import { Employee } from "@/entities/Employee";
 import { Timesheet } from "@/entities/Timesheet";
+import { TestDataSource } from "@/app/config/test-database";
 
 jest.mock("../service/timesheet.service");
 
@@ -65,9 +66,10 @@ describe("TimesheetController", () => {
       send: jest.fn(),
     };
 
-    mockTimesheetService =
-      new TimesheetService() as jest.Mocked<TimesheetService>;
-    timesheetController = new TimesheetController();
+    mockTimesheetService = new TimesheetService(
+      TestDataSource
+    ) as jest.Mocked<TimesheetService>;
+    timesheetController = new TimesheetController(TestDataSource);
     timesheetController["timesheetService"] = mockTimesheetService;
   });
 
