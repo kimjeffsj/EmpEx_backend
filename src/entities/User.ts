@@ -67,7 +67,16 @@ export class User {
   @BeforeInsert()
   @BeforeUpdate()
   validateRole() {
-    if (this.role === UserRole.EMPLOYEE && !this.employeeUsers?.length) {
+    if (!this.id && this.role === UserRole.EMPLOYEE) {
+      return;
+    }
+
+    // Check only when updating
+    if (
+      this.id &&
+      this.role === UserRole.EMPLOYEE &&
+      !this.employeeUsers?.length
+    ) {
       throw new Error(
         "Employee user must be associated with an employee record"
       );

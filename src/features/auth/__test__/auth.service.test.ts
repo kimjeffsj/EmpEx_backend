@@ -24,6 +24,7 @@ describe("AuthService", () => {
   let testEmployee: Employee;
   let userRepository: Repository<User>;
   let employeeUserRepository: Repository<EmployeeUser>;
+  let employeeRepository: Repository<Employee>;
 
   // Setup before all tests
   beforeAll(async () => {
@@ -33,9 +34,7 @@ describe("AuthService", () => {
     authService = new AuthService(TestDataSource);
     userRepository = TestDataSource.getRepository(User);
     employeeUserRepository = TestDataSource.getRepository(EmployeeUser);
-    authService["userRepository"] = userRepository;
-    authService["employeeUserRepository"] = employeeUserRepository;
-    authService["employeeRepository"] = TestDataSource.getRepository(Employee);
+    employeeRepository = TestDataSource.getRepository(Employee);
   });
 
   // Reset database before each test
@@ -110,25 +109,41 @@ describe("AuthService", () => {
     };
 
     it("should successfully create an employee account", async () => {
-      const result = await authService.createEmployeeAccount({
-        ...mockAccountData,
-        employeeId: testEmployee.id,
-      });
+      const queryRunner = TestDataSource.createQueryRunner();
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
 
-      expect(result).toBeDefined();
-      expect(result.user.email).toBe(mockAccountData.email);
-      expect(result.user.role).toBe(UserRole.EMPLOYEE);
+      try {
+        const result = await authService.createEmployeeAccount({
+          ...mockAccountData,
+          employeeId: testEmployee.id,
+        });
 
-      const savedUser = await userRepository.findOneBy({
-        email: mockAccountData.email,
-      });
-      expect(savedUser).toBeDefined();
+        expect(result).toBeDefined();
+        expect(result.user.email).toBe(mockAccountData.email);
+        expect(result.user.role).toBe(UserRole.EMPLOYEE);
 
-      const employeeUserLink = await employeeUserRepository.findOne({
-        where: { userId: savedUser!.id },
-      });
-      expect(employeeUserLink).toBeDefined();
-      expect(employeeUserLink!.employeeId).toBe(testEmployee.id);
+        const savedUser = await userRepository.findOne({
+          where: { email: mockAccountData.email },
+          relations: ["employeeUsers"],
+        });
+
+        expect(savedUser).toBeDefined();
+        expect(savedUser!.employeeUsers.length).toBeGreaterThan(0);
+
+        const employeeUserLink = await employeeUserRepository.findOne({
+          where: { userId: savedUser!.id },
+        });
+        expect(employeeUserLink).toBeDefined();
+        expect(employeeUserLink!.employeeId).toBe(testEmployee.id);
+
+        await queryRunner.commitTransaction();
+      } catch (error) {
+        await queryRunner.rollbackTransaction();
+        throw error;
+      } finally {
+        await queryRunner.release();
+      }
     });
 
     it("should throw NotFoundError for non-existent employee", async () => {
@@ -169,9 +184,10 @@ describe("AuthService", () => {
     };
 
     beforeEach(async () => {
+      const hashedPassword = await hash("oldpassword", 10);
       testUser = await userRepository.save({
         email: "test@example.com",
-        password_hash: await hash("oldpassword", 10),
+        password_hash: hashedPassword,
         first_name: "Test",
         last_name: "User",
         role: UserRole.MANAGER,

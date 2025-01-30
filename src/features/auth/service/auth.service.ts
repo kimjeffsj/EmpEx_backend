@@ -217,13 +217,12 @@ export class AuthService {
       if (!validatePassword(updateData.password)) {
         throw new ValidationError("Password must meet security requirements");
       }
-      updateData.password = await hash(updateData.password, 10);
+      user.password_hash = await hash(updateData.password, 10);
     }
 
     Object.assign(user, {
       first_name: updateData.firstName,
       last_name: updateData.lastName,
-      password_hash: updateData.password,
       is_active: updateData.isActive,
     });
 
