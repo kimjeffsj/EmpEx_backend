@@ -13,6 +13,7 @@ import { createPayrollRouter } from "./features/payroll/routes/payroll.routes";
 import { createEmployeeRouter } from "./features/employee/routes/employee.routes";
 import { createAuthRouter } from "./features/auth/routes/auth.routes";
 import { getDataSource } from "./app/config/data-source";
+import { validateEnvVariables } from "./shared/\butils/env.validator";
 
 // Environment variables setup
 dotenv.config();
@@ -49,6 +50,9 @@ app.use(errorHandler);
 // Database connection and server startup
 const startServer = async () => {
   try {
+    // Env validation
+    validateEnvVariables();
+
     // Database connection
     const dataSource = getDataSource();
     await dataSource.initialize();
