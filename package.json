@@ -8,14 +8,12 @@
     "start": "node -r tsconfig-paths/register dist/server.ts",
     "test": "TZ=UTC NODE_ENV=test jest --runInBand --verbose --coverage",
     "seed:manager": "ts-node -r tsconfig-paths/register src/database/seeds/createManager.ts"
-
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@nestjs/common": "^11.0.5",
     "@types/express": "^5.0.0",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.7",

@@ -1,4 +1,3 @@
-import { AppDataSource } from "@/app/config/database";
 import { EmployeeUser } from "@/entities/EmployeeUser";
 import { User, UserRole } from "@/entities/User";
 import {
@@ -14,14 +13,12 @@ import {
   UnauthorizedError,
   ValidationError,
 } from "@/shared/types/error.types";
-import { Injectable } from "@nestjs/common";
 import { DataSource, Repository } from "typeorm";
 import { sign, verify } from "jsonwebtoken";
 import { compare, hash } from "bcrypt";
 import { Employee } from "@/entities/Employee";
 import { validatePassword } from "../middleware/validation.middleware";
 
-@Injectable()
 export class AuthService {
   private userRepository: Repository<User>;
   private employeeUserRepository: Repository<EmployeeUser>;
