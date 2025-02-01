@@ -221,4 +221,57 @@ describe("AuthService", () => {
       ).rejects.toThrow(ValidationError);
     });
   });
+
+  describe("logout", () => {
+    let testUser: User;
+    const mockToken =
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwic3ViIjoidGVzdEB0ZXN0LmNvbSIsImlhdCI6MTUxNjIzOTAyMiwiZXhwIjo5OTk5OTk5OTk5fQ.signature";
+
+    beforeEach(async () => {
+      const hashedPassword = await hash("password123", 10);
+      testUser = await userRepository.save({
+        email: "test@example.com",
+        password_hash: hashedPassword,
+        first_name: "Test",
+        last_name: "User",
+        role: UserRole.EMPLOYEE,
+        is_active: true,
+      });
+    });
+
+    it("should successfully logout user", async () => {
+      await authService.logout(testUser.id, mockToken);
+
+      // Check if the token has been added to the blacklist
+      const isBlacklisted = await authService.isTokenBlacklisted(mockToken);
+      expect(isBlacklisted).toBe(true);
+
+      // Check if the user's last login time has been updated
+      const updatedUser = await userRepository.findOne({
+        where: { id: testUser.id },
+      });
+      expect(updatedUser?.last_login).toBeDefined();
+    });
+
+    it("should throw ValidationError for invalid token format", async () => {
+      await expect(
+        authService.logout(testUser.id, "invalid-token")
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it("should successfully cleanup expired tokens", async () => {
+      const expiredToken = await authService["tokenBlacklistRepository"].save({
+        token: "expired-token",
+        userId: testUser.id,
+        expiresAt: new Date(Date.now() - 1000), // expired 1 second ago
+      });
+
+      await authService.cleanupExpiredTokens();
+
+      const foundToken = await authService["tokenBlacklistRepository"].findOne({
+        where: { id: expiredToken.id },
+      });
+      expect(foundToken).toBeNull();
+    });
+  });
 });

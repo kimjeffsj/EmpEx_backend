@@ -14,21 +14,25 @@ import {
   UnauthorizedError,
   ValidationError,
 } from "@/shared/types/error.types";
-import { DataSource, Repository } from "typeorm";
-import { sign, verify } from "jsonwebtoken";
+import { DataSource, LessThan, Repository } from "typeorm";
+import { decode, sign, verify } from "jsonwebtoken";
 import { compare, hash } from "bcrypt";
 import { Employee } from "@/entities/Employee";
 import { validatePassword } from "../middleware/validation.middleware";
+import { TokenBlacklist } from "@/entities/TokenBlacklist";
 
 export class AuthService {
   private userRepository: Repository<User>;
   private employeeUserRepository: Repository<EmployeeUser>;
   private employeeRepository: Repository<Employee>;
+  private tokenBlacklistRepository: Repository<TokenBlacklist>;
 
   constructor(private dataSource: DataSource) {
     this.userRepository = this.dataSource.getRepository(User);
     this.employeeUserRepository = this.dataSource.getRepository(EmployeeUser);
     this.employeeRepository = this.dataSource.getRepository(Employee);
+    this.tokenBlacklistRepository =
+      this.dataSource.getRepository(TokenBlacklist);
   }
 
   async login(loginDto: LoginDto): Promise<AuthResponse> {
@@ -239,24 +243,62 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  async logout(userId: number): Promise<void> {
-    try {
-      const user = await this.userRepository.findOne({
-        where: { id: userId },
-      });
+  async logout(userId: number, token: string): Promise<void> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-      if (!user) {
-        throw new NotFoundError("User");
+    try {
+      // Decode the token to check the expiration time
+      const decoded = decode(token) as { exp: number };
+      if (!decoded || !decoded.exp) {
+        throw new ValidationError("Invalid token format");
       }
 
-      // Update Last logout time
-      user.last_login = new Date();
-      await this.userRepository.save(user);
+      const expiresAt = new Date(decoded.exp * 1000);
+
+      // Add token to blacklist
+      const blacklistEntry = this.tokenBlacklistRepository.create({
+        token,
+        userId,
+        expiresAt,
+      });
+
+      await queryRunner.manager.save(blacklistEntry);
+
+      // Update user's last logout time
+      await queryRunner.manager.update(User, userId, {
+        last_login: new Date(),
+      });
+
+      await queryRunner.commitTransaction();
     } catch (error) {
-      if (error instanceof NotFoundError) {
+      await queryRunner.rollbackTransaction();
+      if (error instanceof ValidationError) {
         throw error;
       }
       throw new DatabaseError(`Error during logout: ${error.message}`);
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async isTokenBlacklisted(token: string): Promise<boolean> {
+    const blacklistedToken = await this.tokenBlacklistRepository.findOne({
+      where: { token },
+    });
+    return !!blacklistedToken;
+  }
+
+  async cleanupExpiredTokens(): Promise<void> {
+    try {
+      await this.tokenBlacklistRepository.delete({
+        expiresAt: LessThan(new Date()),
+      });
+    } catch (error) {
+      throw new DatabaseError(
+        `Error cleaning up expired tokens: ${error.message}`
+      );
     }
   }
 }
