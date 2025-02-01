@@ -8,6 +8,7 @@ import {
   UpdateUserDto,
 } from "@/shared/types/auth.types";
 import {
+  DatabaseError,
   DuplicateError,
   NotFoundError,
   UnauthorizedError,
@@ -236,5 +237,26 @@ export class AuthService {
     });
 
     return { accessToken, refreshToken };
+  }
+
+  async logout(userId: number): Promise<void> {
+    try {
+      const user = await this.userRepository.findOne({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw new NotFoundError("User");
+      }
+
+      // Update Last logout time
+      user.last_login = new Date();
+      await this.userRepository.save(user);
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+      throw new DatabaseError(`Error during logout: ${error.message}`);
+    }
   }
 }

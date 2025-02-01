@@ -154,5 +154,59 @@ export const createAuthRouter = (dataSource: DataSource): Router => {
     validate(validateAuth.updateUser),
     authController.updateUser.bind(authController)
   );
+
+  /**
+   * @swagger
+   * /api/auth/logout:
+   *   post:
+   *     summary: User logout
+   *     description: |
+   *       Logs out the current user and updates their last logout time.
+   *       Requires a valid JWT token.
+   *     tags: [Authentication]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Successfully logged out
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 code:
+   *                   type: string
+   *                   example: "LOGOUT_SUCCESS"
+   *                 message:
+   *                   type: string
+   *                   example: "Successfully logged out"
+   *                 details:
+   *                   type: object
+   *                   properties:
+   *                     userId:
+   *                       type: integer
+   *                       example: 1
+   *                     logoutTime:
+   *                       type: string
+   *                       format: date-time
+   *       401:
+   *         description: Not authenticated
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   *       500:
+   *         description: Server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   */
+  router.post(
+    "/logout",
+    authenticateJWT,
+    authController.logout.bind(authController)
+  );
+
   return router;
 };

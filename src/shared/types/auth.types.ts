@@ -81,3 +81,12 @@ export interface AuthError {
   message: string;
   details?: Record<string, string>;
 }
+
+export interface LogoutResponse {
+  code: string;
+  message: string;
+  details?: {
+    userId: number;
+    logoutTime: Date;
+  };
+}
