@@ -141,4 +141,48 @@ export class AuthController {
       }
     }
   }
+
+  async logout(req: Request, res: Response) {
+    try {
+      const userId = req.user?.id;
+      const token = req.headers.authorization?.split(" ")[1];
+
+      if (!userId || !token) {
+        throw new UnauthorizedError("User not authenticated");
+      }
+
+      await this.authService.logout(userId, token);
+
+      res.json({
+        code: "LOGOUT_SUCCESS",
+        message: "Successfully logged out",
+        details: {
+          userId: userId,
+          logoutTime: new Date(),
+        },
+      });
+    } catch (error) {
+      if (error instanceof UnauthorizedError) {
+        res.status(401).json({
+          code: error.code,
+          message: error.message,
+        });
+      } else if (error instanceof NotFoundError) {
+        res.status(404).json({
+          code: error.code,
+          message: error.message,
+        });
+      } else if (error instanceof DatabaseError) {
+        res.status(500).json({
+          code: error.code,
+          message: error.message,
+        });
+      } else {
+        res.status(500).json({
+          code: "UNEXPECTED_ERROR",
+          message: "An unexpected error occurred during logout.",
+        });
+      }
+    }
+  }
 }

@@ -49,6 +49,8 @@ export interface TokenPayload {
   email: string;
   role: UserRole;
   employeeId?: number; // Only for employees
+  exp?: number;
+  iat?: number;
 }
 
 export interface AuthResponse {
@@ -80,4 +82,13 @@ export interface AuthError {
   code: string;
   message: string;
   details?: Record<string, string>;
+}
+
+export interface LogoutResponse {
+  code: string;
+  message: string;
+  details?: {
+    userId: number;
+    logoutTime: Date;
+  };
 }
