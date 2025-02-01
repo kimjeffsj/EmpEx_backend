@@ -145,11 +145,13 @@ export class AuthController {
   async logout(req: Request, res: Response) {
     try {
       const userId = req.user?.id;
-      if (!userId) {
+      const token = req.headers.authorization?.split(" ")[1];
+
+      if (!userId || !token) {
         throw new UnauthorizedError("User not authenticated");
       }
 
-      await this.authService.logout(userId);
+      await this.authService.logout(userId, token);
 
       res.json({
         code: "LOGOUT_SUCCESS",

@@ -49,6 +49,8 @@ export interface TokenPayload {
   email: string;
   role: UserRole;
   employeeId?: number; // Only for employees
+  exp?: number;
+  iat?: number;
 }
 
 export interface AuthResponse {

@@ -1,20 +1,14 @@
+import { Secret } from "jsonwebtoken";
+
 export interface TokenConfig {
   accessToken: {
-    secret: string;
+    secret: Secret;
     expiresIn: string; // '15m'
   };
   refreshToken: {
-    secret: string;
+    secret: Secret;
     expiresIn: string; // '7d'
   };
-}
-
-export interface DecodedToken {
-  id: number;
-  email: string;
-  role: string;
-  iat: number;
-  exp: number;
 }
 
 export const TOKEN_CONFIG: TokenConfig = {

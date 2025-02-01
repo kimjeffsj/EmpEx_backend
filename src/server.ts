@@ -2,7 +2,10 @@ import "reflect-metadata";
 import express, { Express } from "express";
 import cors from "cors";
 import helmet from "helmet";
+
 import dotenv from "dotenv";
+dotenv.config();
+
 import swaggerUi from "swagger-ui-express";
 import { specs } from "./app/config/swagger";
 import { errorHandler } from "./shared/middleware/error.middleware";
@@ -16,7 +19,6 @@ import { getDataSource } from "./app/config/data-source";
 import { validateEnvVariables } from "./shared/\butils/env.validator";
 
 // Environment variables setup
-dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT || 3000;
