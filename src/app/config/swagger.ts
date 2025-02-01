@@ -1,4 +1,7 @@
 import swaggerJsdoc from "swagger-jsdoc";
+import { PayPeriodStatus, PayPeriodType } from "@/entities/PayPeriod";
+import { PayrollStatus } from "@/entities/Payroll";
+import { UserRole } from "@/entities/User";
 
 const options = {
   definition: {
@@ -15,7 +18,15 @@ const options = {
       },
     ],
     components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+        },
+      },
       schemas: {
+        // Employee Schema
         Employee: {
           type: "object",
           properties: {
@@ -88,6 +99,232 @@ const options = {
             "startDate",
           ],
         },
+
+        // Timesheet Schema
+        Timesheet: {
+          type: "object",
+          properties: {
+            id: {
+              type: "integer",
+              description: "Timesheet ID",
+            },
+            employeeId: {
+              type: "integer",
+              description: "Employee ID reference",
+            },
+            startTime: {
+              type: "string",
+              format: "date-time",
+              description: "Start time of work",
+            },
+            endTime: {
+              type: "string",
+              format: "date-time",
+              description: "End time of work",
+            },
+            regularHours: {
+              type: "number",
+              format: "float",
+              description: "Regular working hours",
+            },
+            overtimeHours: {
+              type: "number",
+              format: "float",
+              description: "Overtime hours",
+            },
+            totalHours: {
+              type: "number",
+              format: "float",
+              description: "Total hours (regular + overtime)",
+            },
+            totalPay: {
+              type: "number",
+              format: "float",
+              description: "Total pay amount",
+            },
+            createdAt: {
+              type: "string",
+              format: "date-time",
+              description: "Record creation timestamp",
+            },
+            updatedAt: {
+              type: "string",
+              format: "date-time",
+              description: "Record update timestamp",
+            },
+          },
+          required: ["employeeId", "startTime", "endTime", "regularHours"],
+        },
+
+        // PayPeriod Schema
+        PayPeriod: {
+          type: "object",
+          properties: {
+            id: {
+              type: "integer",
+              description: "Pay period ID",
+            },
+            startDate: {
+              type: "string",
+              format: "date",
+              description: "Start date of the pay period",
+            },
+            endDate: {
+              type: "string",
+              format: "date",
+              description: "End date of the pay period",
+            },
+            periodType: {
+              type: "string",
+              enum: Object.values(PayPeriodType),
+              description: "Type of pay period",
+            },
+            status: {
+              type: "string",
+              enum: Object.values(PayPeriodStatus),
+              description: "Current status of the pay period",
+            },
+            payrolls: {
+              type: "array",
+              items: {
+                $ref: "#/components/schemas/Payroll",
+              },
+              description: "Associated payroll records",
+            },
+            createdAt: {
+              type: "string",
+              format: "date-time",
+              description: "Record creation timestamp",
+            },
+            updatedAt: {
+              type: "string",
+              format: "date-time",
+              description: "Record update timestamp",
+            },
+          },
+          required: ["startDate", "endDate", "periodType"],
+        },
+
+        // Payroll Schema
+        Payroll: {
+          type: "object",
+          properties: {
+            id: {
+              type: "integer",
+              description: "Payroll ID",
+            },
+            employeeId: {
+              type: "integer",
+              description: "Employee ID reference",
+            },
+            payPeriodId: {
+              type: "integer",
+              description: "Pay period ID reference",
+            },
+            totalRegularHours: {
+              type: "number",
+              format: "float",
+              description: "Total regular hours",
+            },
+            totalOvertimeHours: {
+              type: "number",
+              format: "float",
+              description: "Total overtime hours",
+            },
+            totalHours: {
+              type: "number",
+              format: "float",
+              description: "Total hours (regular + overtime)",
+            },
+            grossPay: {
+              type: "number",
+              format: "float",
+              description: "Gross pay amount",
+            },
+            status: {
+              type: "string",
+              enum: Object.values(PayrollStatus),
+              description: "Current status of the payroll",
+            },
+            createdAt: {
+              type: "string",
+              format: "date-time",
+              description: "Record creation timestamp",
+            },
+            updatedAt: {
+              type: "string",
+              format: "date-time",
+              description: "Record update timestamp",
+            },
+          },
+          required: ["employeeId", "payPeriodId"],
+        },
+
+        // Auth Schemas
+        LoginRequest: {
+          type: "object",
+          properties: {
+            email: {
+              type: "string",
+              format: "email",
+              description: "User email",
+            },
+            password: {
+              type: "string",
+              format: "password",
+              description: "User password",
+            },
+          },
+          required: ["email", "password"],
+        },
+
+        AuthResponse: {
+          type: "object",
+          properties: {
+            accessToken: {
+              type: "string",
+              description: "JWT access token",
+            },
+            refreshToken: {
+              type: "string",
+              description: "JWT refresh token",
+            },
+            user: {
+              type: "object",
+              properties: {
+                id: {
+                  type: "integer",
+                  description: "User ID",
+                },
+                email: {
+                  type: "string",
+                  format: "email",
+                  description: "User email",
+                },
+                firstName: {
+                  type: "string",
+                  description: "User first name",
+                },
+                lastName: {
+                  type: "string",
+                  description: "User last name",
+                },
+                role: {
+                  type: "string",
+                  enum: Object.values(UserRole),
+                  description: "User role",
+                },
+                employeeId: {
+                  type: "integer",
+                  nullable: true,
+                  description: "Associated employee ID for employee users",
+                },
+              },
+            },
+          },
+        },
+
+        // Error Schema
         Error: {
           type: "object",
           properties: {
@@ -114,60 +351,44 @@ const options = {
             },
           },
         },
-        PayPeriod: {
+
+        // Common Responses
+        PaginatedResponse: {
           type: "object",
           properties: {
-            id: {
-              type: "integer",
-              description: "Pay period ID",
-            },
-            startDate: {
-              type: "string",
-              format: "date",
-              description: "Start date of the pay period",
-            },
-            endDate: {
-              type: "string",
-              format: "date",
-              description: "End date of the pay period",
-            },
-            periodType: {
-              type: "string",
-              enum: ["FIRST_HALF", "SECOND_HALF"],
-              description: "Type of pay period",
-            },
-            status: {
-              type: "string",
-              enum: ["PROCESSING", "COMPLETED"],
-              description: "Current status of the pay period",
-            },
-            createdAt: {
-              type: "string",
-              format: "date-time",
-              description: "Record creation timestamp",
-            },
-            updatedAt: {
-              type: "string",
-              format: "date-time",
-              description: "Record update timestamp",
-            },
-            payrolls: {
+            data: {
               type: "array",
               items: {
-                $ref: "#/components/schemas/Payroll",
+                type: "object",
               },
-              description: "Associated payroll records",
+            },
+            total: {
+              type: "integer",
+              description: "Total number of records",
+            },
+            page: {
+              type: "integer",
+              description: "Current page number",
+            },
+            limit: {
+              type: "integer",
+              description: "Number of records per page",
+            },
+            totalPages: {
+              type: "integer",
+              description: "Total number of pages",
             },
           },
         },
       },
     },
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
   },
-  apis: [
-    "./src/features/employee/routes/*.ts",
-    "./src/features/timesheet/routes/*.ts",
-    "./src/features/payroll/routes/*.ts",
-  ],
+  apis: ["./src/features/*/routes/*.ts"],
 };
 
 export const specs = swaggerJsdoc(options);
