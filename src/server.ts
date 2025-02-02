@@ -19,6 +19,7 @@ import { createAuthRouter } from "./features/auth/routes/auth.routes";
 import { getDataSource } from "./app/config/data-source";
 import { validateEnvVariables } from "./shared/\butils/env.validator";
 import { AuthService } from "./features/auth/service/auth.service";
+import { responseHandler } from "./shared/middleware/response.middleware";
 
 // Environment variables setup
 
@@ -59,6 +60,7 @@ app.use(
 );
 
 app.use(express.json());
+app.use(responseHandler);
 
 // Swagger Documentation
 app.use(

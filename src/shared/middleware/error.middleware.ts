@@ -1,6 +1,7 @@
-import { ErrorRequestHandler, NextFunction, Request, Response } from "express";
+import { ErrorRequestHandler } from "express";
 import { AppError } from "../types/error.types";
 import { QueryFailedError } from "typeorm";
+import { ResponseUtil } from "./response.middleware";
 
 interface ErrorResponse {
   code: string;
@@ -15,8 +16,6 @@ export const errorHandler: ErrorRequestHandler = (
   res,
   next
 ): void => {
-  let response: ErrorResponse;
-
   if (process.env.NODE_ENV === "development") {
     console.error("Error:", {
       name: err.name,
@@ -27,41 +26,42 @@ export const errorHandler: ErrorRequestHandler = (
 
   // Custom AppError
   if (err instanceof AppError) {
-    response = err.toJSON();
-    res.status(err.statusCode).json(response);
-    return;
+    return void ResponseUtil.error(
+      res,
+      err.code,
+      err.message,
+      err.details,
+      err.statusCode
+    );
   }
 
   // TypeORM Errors
   if (err instanceof QueryFailedError) {
     // unique constraint violation
     if (err.message.includes("duplicate key")) {
-      response = {
-        code: "DUPLICATE_ENTRY",
-        message: "A record with this value already exists in the database",
-      };
-      res.status(409).json(response);
-      return;
+      return void ResponseUtil.error(
+        res,
+        "DUPLICATE_ENTRY",
+        "A record with this value already exists in the database",
+        undefined,
+        409
+      );
     }
 
-    response = {
-      code: "DATABASE_ERROR",
-      message: "Database operation failed",
-    };
-    res.status(400).json(response);
-    return;
+    return void ResponseUtil.error(
+      res,
+      "DATABASE_ERROR",
+      "Database operation failed",
+      undefined,
+      400
+    );
   }
 
   // Unexpected Errors
-  response = {
-    code: "INTERNAL_SERVER_ERROR",
-    message: "An unexpected error occurred" + err.message,
+  const errorResponse = {
+    message: "An unexpected error occurred: " + err.message,
+    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   };
 
-  if (process.env.NODE_ENV === "development") {
-    response.stack = err.stack;
-  }
-
-  res.status(500).json(response);
-  return;
+  return void ResponseUtil.serverError(res, errorResponse.message);
 };
