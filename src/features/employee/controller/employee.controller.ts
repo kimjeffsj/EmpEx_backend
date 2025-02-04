@@ -13,6 +13,7 @@ import {
   ValidationError,
 } from "@/shared/types/error.types";
 import { DataSource } from "typeorm";
+import { ResponseUtil } from "@/shared/middleware/response.middleware";
 
 export class EmployeeController {
   private employeeService: EmployeeService;
@@ -28,30 +29,29 @@ export class EmployeeController {
       const newEmployee = await this.employeeService.createEmployee(
         employeeData
       );
-      res.status(201).json(newEmployee);
+
+      return void ResponseUtil.created(res, newEmployee);
     } catch (error) {
       if (error instanceof ValidationError) {
-        res.status(400).json({
-          code: error.code,
-          message: error.message,
-          details: error.details,
-        });
-      } else if (error instanceof DuplicateError) {
-        res.status(409).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else if (error instanceof DatabaseError) {
-        res.status(500).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else {
-        res.status(500).json({
-          code: "UNEXPECTED_ERROR",
-          message: "An unexpected error occurred while creating employee.",
-        });
+        return void ResponseUtil.badRequest(res, error.message, error.details);
       }
+      if (error instanceof DuplicateError) {
+        return void ResponseUtil.error(
+          res,
+          error.code,
+          error.message,
+          undefined,
+          409
+        );
+      }
+      if (error instanceof DatabaseError) {
+        return void ResponseUtil.serverError(res, error.message);
+      }
+
+      return void ResponseUtil.serverError(
+        res,
+        "An unexpected error occurred while creating employee."
+      );
     }
   }
 
@@ -60,24 +60,17 @@ export class EmployeeController {
     try {
       const id = parseInt(req.params.id);
       const employee = await this.employeeService.getEmployeeById(id);
-      res.json(employee);
+
+      return void ResponseUtil.success(res, employee);
     } catch (error) {
       if (error instanceof NotFoundError) {
-        res.status(404).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else if (error instanceof DatabaseError) {
-        res.status(500).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else {
-        res.status(500).json({
-          code: "UNEXPECTED_ERROR",
-          message: "An unexpected error occurred while fetching employee.",
-        });
+        return void ResponseUtil.notFound(res, error.message);
       }
+
+      return void ResponseUtil.serverError(
+        res,
+        "An unexpected error occurred while fetching employee."
+      );
     }
   }
 
@@ -85,36 +78,30 @@ export class EmployeeController {
   async getEmployees(req: Request, res: Response) {
     try {
       const filters: EmployeeFilters = {
-        page: req.query.page ? parseInt(req.query.page as string) : undefined,
-        limit: req.query.limit
-          ? parseInt(req.query.limit as string)
-          : undefined,
+        page: req.query.page ? parseInt(req.query.page as string) : 1,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : 10,
         search: req.query.search as string,
         isResigned: req.query.isResigned === "true",
         sortBy: req.query.sortBy as keyof EmployeeResponse,
         sortOrder: (req.query.sortOrder as "ASC" | "DESC") || "ASC",
       };
 
-      const employees = await this.employeeService.getEmployees(filters);
-      res.json(employees);
+      const result = await this.employeeService.getEmployees(filters);
+      return void ResponseUtil.success(res, result.data, {
+        page: result.page,
+        limit: result.limit,
+        total: result.total,
+        totalPages: result.totalPages,
+      });
     } catch (error) {
       if (error instanceof ValidationError) {
-        res.status(400).json({
-          code: error.code,
-          message: error.message,
-          details: error.details,
-        });
-      } else if (error instanceof DatabaseError) {
-        res.status(500).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else {
-        res.status(500).json({
-          code: "UNEXPECTED_ERROR",
-          message: "An unexpected error occurred while fetching employees.",
-        });
+        return void ResponseUtil.badRequest(res, error.message, error.details);
       }
+
+      return void ResponseUtil.serverError(
+        res,
+        "An unexpected error occurred while fetching employees."
+      );
     }
   }
 
@@ -123,41 +110,33 @@ export class EmployeeController {
     try {
       const id = parseInt(req.params.id);
       const updateData: UpdateEmployeeDto = req.body;
-
       const updatedEmployee = await this.employeeService.updateEmployee(
         id,
         updateData
       );
 
-      res.json(updatedEmployee);
+      return void ResponseUtil.success(res, updatedEmployee);
     } catch (error) {
-      if (error instanceof NotFoundError) {
-        res.status(404).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else if (error instanceof ValidationError) {
-        res.status(400).json({
-          code: error.code,
-          message: error.message,
-          details: error.details,
-        });
-      } else if (error instanceof DuplicateError) {
-        res.status(409).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else if (error instanceof DatabaseError) {
-        res.status(500).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else {
-        res.status(500).json({
-          code: "UNEXPECTED_ERROR",
-          message: "An unexpected error occurred while updating employee.",
-        });
+      if (error instanceof ValidationError) {
+        return void ResponseUtil.badRequest(res, error.message, error.details);
       }
+      if (error instanceof NotFoundError) {
+        return void ResponseUtil.notFound(res, error.message);
+      }
+      if (error instanceof DuplicateError) {
+        return void ResponseUtil.error(
+          res,
+          error.code,
+          error.message,
+          undefined,
+          409
+        );
+      }
+
+      return void ResponseUtil.serverError(
+        res,
+        "An unexpected error occurred while updating employee."
+      );
     }
   }
 
@@ -165,26 +144,18 @@ export class EmployeeController {
   async deleteEmployee(req: Request, res: Response) {
     try {
       const id = parseInt(req.params.id);
-      const deleted = await this.employeeService.deleteEmployee(id);
+      await this.employeeService.deleteEmployee(id);
 
-      res.status(204).send();
+      return void ResponseUtil.noContent(res);
     } catch (error) {
       if (error instanceof NotFoundError) {
-        res.status(404).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else if (error instanceof DatabaseError) {
-        res.status(500).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else {
-        res.status(500).json({
-          code: "UNEXPECTED_ERROR",
-          message: "An unexpected error occurred while deleting employee.",
-        });
+        return void ResponseUtil.notFound(res, error.message);
       }
+
+      return void ResponseUtil.serverError(
+        res,
+        "An unexpected error occurred while deleting employee."
+      );
     }
   }
 }
