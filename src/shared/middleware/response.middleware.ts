@@ -1,5 +1,3 @@
-// This middleware attaches utility functions for success and error responses to the Express Response object.
-
 import { NextFunction, Request, Response } from "express";
 import {
   createErrorResponse,

@@ -8,6 +8,7 @@ import {
 } from "@/shared/types/error.types";
 import { DatabaseError } from "pg";
 import { DataSource } from "typeorm";
+import { ResponseUtil } from "@/shared/middleware/response.middleware";
 
 export class AuthController {
   private authService: AuthService;
@@ -21,30 +22,21 @@ export class AuthController {
       const loginDto = req.body;
       const authResponse = await this.authService.login(loginDto);
 
-      res.json(authResponse);
+      return ResponseUtil.success(res, authResponse);
     } catch (error) {
       if (error instanceof UnauthorizedError) {
-        res.status(401).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else if (error instanceof ValidationError) {
-        res.status(400).json({
-          code: error.code,
-          message: error.message,
-          details: error.details,
-        });
-      } else if (error instanceof DatabaseError) {
-        res.status(500).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else {
-        res.status(500).json({
-          code: "UNEXPECTED_ERROR",
-          message: "An unexpected error occurred during login.",
-        });
+        return ResponseUtil.unauthorized(res, error.message);
       }
+      if (error instanceof ValidationError) {
+        return ResponseUtil.badRequest(res, error.message, error.details);
+      }
+      if (error instanceof DatabaseError) {
+        return ResponseUtil.serverError(res, error.message);
+      }
+      return ResponseUtil.serverError(
+        res,
+        "An unexpected error occurred during login."
+      );
     }
   }
 
@@ -53,19 +45,15 @@ export class AuthController {
       const { refreshToken } = req.body;
       const authResponse = await this.authService.refreshToken(refreshToken);
 
-      res.json(authResponse);
+      return ResponseUtil.success(res, authResponse);
     } catch (error) {
       if (error instanceof UnauthorizedError) {
-        res.status(401).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else {
-        res.status(500).json({
-          code: "UNEXPECTED_ERROR",
-          message: "An unexpected error occurred while refreshing token.",
-        });
+        return ResponseUtil.unauthorized(res, error.message);
       }
+      return ResponseUtil.serverError(
+        res,
+        "An unexpected error occurred while refreshing token."
+      );
     }
   }
 
@@ -76,36 +64,30 @@ export class AuthController {
         employeeAccountData
       );
 
-      res.status(201).json(authResponse);
+      return ResponseUtil.created(res, authResponse);
     } catch (error) {
       if (error instanceof ValidationError) {
-        res.status(400).json({
-          code: error.code,
-          message: error.message,
-          details: error.details,
-        });
-      } else if (error instanceof NotFoundError) {
-        res.status(404).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else if (error instanceof DuplicateError) {
-        res.status(409).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else if (error instanceof DatabaseError) {
-        res.status(500).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else {
-        res.status(500).json({
-          code: "UNEXPECTED_ERROR",
-          message:
-            "An unexpected error occurred while creating employee account.",
-        });
+        return ResponseUtil.badRequest(res, error.message, error.details);
       }
+      if (error instanceof NotFoundError) {
+        return ResponseUtil.notFound(res, error.message);
+      }
+      if (error instanceof DuplicateError) {
+        return ResponseUtil.error(
+          res,
+          error.code,
+          error.message,
+          undefined,
+          409
+        );
+      }
+      if (error instanceof DatabaseError) {
+        return ResponseUtil.serverError(res, error.message);
+      }
+      return ResponseUtil.serverError(
+        res,
+        "An unexpected error occurred while creating employee account."
+      );
     }
   }
 
@@ -115,30 +97,21 @@ export class AuthController {
       const updateData = req.body;
       const updatedUser = await this.authService.updateUser(userId, updateData);
 
-      res.json(updatedUser);
+      return ResponseUtil.success(res, updatedUser);
     } catch (error) {
       if (error instanceof ValidationError) {
-        res.status(400).json({
-          code: error.code,
-          message: error.message,
-          details: error.details,
-        });
-      } else if (error instanceof NotFoundError) {
-        res.status(404).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else if (error instanceof DatabaseError) {
-        res.status(500).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else {
-        res.status(500).json({
-          code: "UNEXPECTED_ERROR",
-          message: "An unexpected error occurred while updating user.",
-        });
+        return ResponseUtil.badRequest(res, error.message, error.details);
       }
+      if (error instanceof NotFoundError) {
+        return ResponseUtil.notFound(res, error.message);
+      }
+      if (error instanceof DatabaseError) {
+        return ResponseUtil.serverError(res, error.message);
+      }
+      return ResponseUtil.serverError(
+        res,
+        "An unexpected error occurred while updating user."
+      );
     }
   }
 
@@ -153,7 +126,7 @@ export class AuthController {
 
       await this.authService.logout(userId, token);
 
-      res.json({
+      return ResponseUtil.success(res, {
         code: "LOGOUT_SUCCESS",
         message: "Successfully logged out",
         details: {
@@ -163,26 +136,18 @@ export class AuthController {
       });
     } catch (error) {
       if (error instanceof UnauthorizedError) {
-        res.status(401).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else if (error instanceof NotFoundError) {
-        res.status(404).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else if (error instanceof DatabaseError) {
-        res.status(500).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else {
-        res.status(500).json({
-          code: "UNEXPECTED_ERROR",
-          message: "An unexpected error occurred during logout.",
-        });
+        return ResponseUtil.unauthorized(res, error.message);
       }
+      if (error instanceof NotFoundError) {
+        return ResponseUtil.notFound(res, error.message);
+      }
+      if (error instanceof DatabaseError) {
+        return ResponseUtil.serverError(res, error.message);
+      }
+      return ResponseUtil.serverError(
+        res,
+        "An unexpected error occurred during logout."
+      );
     }
   }
 }

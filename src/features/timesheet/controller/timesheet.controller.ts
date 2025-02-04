@@ -11,6 +11,7 @@ import {
   ValidationError,
 } from "@/shared/types/error.types";
 import { DataSource } from "typeorm";
+import { ResponseUtil } from "@/shared/middleware/response.middleware";
 
 export class TimesheetController {
   private timesheetService: TimesheetService;
@@ -25,30 +26,22 @@ export class TimesheetController {
       const newTimesheet = await this.timesheetService.createTimesheet(
         timesheetData
       );
-      res.status(201).json(newTimesheet);
+
+      return ResponseUtil.created(res, newTimesheet);
     } catch (error) {
       if (error instanceof ValidationError) {
-        res.status(400).json({
-          code: error.code,
-          message: error.message,
-          details: error.details,
-        });
-      } else if (error instanceof NotFoundError) {
-        res.status(404).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else if (error instanceof DatabaseError) {
-        res.status(500).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else {
-        res.status(500).json({
-          code: "UNEXPECTED_ERROR",
-          message: "An unexpected error occurred while creating timesheet.",
-        });
+        return ResponseUtil.badRequest(res, error.message, error.details);
       }
+      if (error instanceof NotFoundError) {
+        return ResponseUtil.notFound(res, error.message);
+      }
+      if (error instanceof DatabaseError) {
+        return ResponseUtil.serverError(res, error.message);
+      }
+      return ResponseUtil.serverError(
+        res,
+        "An unexpected error occurred while creating timesheet."
+      );
     }
   }
 
@@ -56,24 +49,19 @@ export class TimesheetController {
     try {
       const id = parseInt(req.params.id);
       const timesheet = await this.timesheetService.getTimesheetById(id);
-      res.json(timesheet);
+
+      return ResponseUtil.success(res, timesheet);
     } catch (error) {
       if (error instanceof NotFoundError) {
-        res.status(404).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else if (error instanceof DatabaseError) {
-        res.status(500).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else {
-        res.status(500).json({
-          code: "UNEXPECTED_ERROR",
-          message: "An unexpected error occurred while fetching timesheet.",
-        });
+        return ResponseUtil.notFound(res, error.message);
       }
+      if (error instanceof DatabaseError) {
+        return ResponseUtil.serverError(res, error.message);
+      }
+      return ResponseUtil.serverError(
+        res,
+        "An unexpected error occurred while fetching timesheet."
+      );
     }
   }
 
@@ -96,25 +84,24 @@ export class TimesheetController {
       };
 
       const timesheets = await this.timesheetService.getTimesheets(filters);
-      res.json(timesheets);
+
+      return ResponseUtil.success(res, timesheets.data, {
+        page: timesheets.page,
+        limit: timesheets.limit,
+        total: timesheets.total,
+        totalPages: timesheets.totalPages,
+      });
     } catch (error) {
       if (error instanceof ValidationError) {
-        res.status(400).json({
-          code: error.code,
-          message: error.message,
-          details: error.details,
-        });
-      } else if (error instanceof DatabaseError) {
-        res.status(500).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else {
-        res.status(500).json({
-          code: "UNEXPECTED_ERROR",
-          message: "An unexpected error occurred while fetching timesheets.",
-        });
+        return ResponseUtil.badRequest(res, error.message, error.details);
       }
+      if (error instanceof DatabaseError) {
+        return ResponseUtil.serverError(res, error.message);
+      }
+      return ResponseUtil.serverError(
+        res,
+        "An unexpected error occurred while fetching timesheets."
+      );
     }
   }
 
@@ -126,54 +113,41 @@ export class TimesheetController {
         id,
         updateData
       );
-      res.json(updatedTimesheet);
+
+      return ResponseUtil.success(res, updatedTimesheet);
     } catch (error) {
       if (error instanceof ValidationError) {
-        res.status(400).json({
-          code: error.code,
-          message: error.message,
-          details: error.details,
-        });
-      } else if (error instanceof NotFoundError) {
-        res.status(404).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else if (error instanceof DatabaseError) {
-        res.status(500).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else {
-        res.status(500).json({
-          code: "UNEXPECTED_ERROR",
-          message: "An unexpected error occurred while updating timesheet.",
-        });
+        return ResponseUtil.badRequest(res, error.message, error.details);
       }
+      if (error instanceof NotFoundError) {
+        return ResponseUtil.notFound(res, error.message);
+      }
+      if (error instanceof DatabaseError) {
+        return ResponseUtil.serverError(res, error.message);
+      }
+      return ResponseUtil.serverError(
+        res,
+        "An unexpected error occurred while updating timesheet."
+      );
     }
   }
   async deleteTimesheet(req: Request, res: Response) {
     try {
       const id = parseInt(req.params.id);
       await this.timesheetService.deleteTimesheet(id);
-      res.status(204).send();
+
+      return ResponseUtil.noContent(res);
     } catch (error) {
       if (error instanceof NotFoundError) {
-        res.status(404).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else if (error instanceof DatabaseError) {
-        res.status(500).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else {
-        res.status(500).json({
-          code: "UNEXPECTED_ERROR",
-          message: "An unexpected error occurred while deleting timesheet.",
-        });
+        return ResponseUtil.notFound(res, error.message);
       }
+      if (error instanceof DatabaseError) {
+        return ResponseUtil.serverError(res, error.message);
+      }
+      return ResponseUtil.serverError(
+        res,
+        "An unexpected error occurred while deleting timesheet."
+      );
     }
   }
 }

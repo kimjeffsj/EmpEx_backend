@@ -30,13 +30,13 @@ export class EmployeeController {
         employeeData
       );
 
-      return void ResponseUtil.created(res, newEmployee);
+      return ResponseUtil.created(res, newEmployee);
     } catch (error) {
       if (error instanceof ValidationError) {
-        return void ResponseUtil.badRequest(res, error.message, error.details);
+        return ResponseUtil.badRequest(res, error.message, error.details);
       }
       if (error instanceof DuplicateError) {
-        return void ResponseUtil.error(
+        return ResponseUtil.error(
           res,
           error.code,
           error.message,
@@ -45,10 +45,10 @@ export class EmployeeController {
         );
       }
       if (error instanceof DatabaseError) {
-        return void ResponseUtil.serverError(res, error.message);
+        return ResponseUtil.serverError(res, error.message);
       }
 
-      return void ResponseUtil.serverError(
+      return ResponseUtil.serverError(
         res,
         "An unexpected error occurred while creating employee."
       );
@@ -61,13 +61,13 @@ export class EmployeeController {
       const id = parseInt(req.params.id);
       const employee = await this.employeeService.getEmployeeById(id);
 
-      return void ResponseUtil.success(res, employee);
+      return ResponseUtil.success(res, employee);
     } catch (error) {
       if (error instanceof NotFoundError) {
-        return void ResponseUtil.notFound(res, error.message);
+        return ResponseUtil.notFound(res, error.message);
       }
 
-      return void ResponseUtil.serverError(
+      return ResponseUtil.serverError(
         res,
         "An unexpected error occurred while fetching employee."
       );
@@ -87,7 +87,7 @@ export class EmployeeController {
       };
 
       const result = await this.employeeService.getEmployees(filters);
-      return void ResponseUtil.success(res, result.data, {
+      return ResponseUtil.success(res, result.data, {
         page: result.page,
         limit: result.limit,
         total: result.total,
@@ -95,10 +95,10 @@ export class EmployeeController {
       });
     } catch (error) {
       if (error instanceof ValidationError) {
-        return void ResponseUtil.badRequest(res, error.message, error.details);
+        return ResponseUtil.badRequest(res, error.message, error.details);
       }
 
-      return void ResponseUtil.serverError(
+      return ResponseUtil.serverError(
         res,
         "An unexpected error occurred while fetching employees."
       );
@@ -115,16 +115,16 @@ export class EmployeeController {
         updateData
       );
 
-      return void ResponseUtil.success(res, updatedEmployee);
+      return ResponseUtil.success(res, updatedEmployee);
     } catch (error) {
       if (error instanceof ValidationError) {
-        return void ResponseUtil.badRequest(res, error.message, error.details);
+        return ResponseUtil.badRequest(res, error.message, error.details);
       }
       if (error instanceof NotFoundError) {
-        return void ResponseUtil.notFound(res, error.message);
+        return ResponseUtil.notFound(res, error.message);
       }
       if (error instanceof DuplicateError) {
-        return void ResponseUtil.error(
+        return ResponseUtil.error(
           res,
           error.code,
           error.message,
@@ -133,7 +133,7 @@ export class EmployeeController {
         );
       }
 
-      return void ResponseUtil.serverError(
+      return ResponseUtil.serverError(
         res,
         "An unexpected error occurred while updating employee."
       );
@@ -146,13 +146,13 @@ export class EmployeeController {
       const id = parseInt(req.params.id);
       await this.employeeService.deleteEmployee(id);
 
-      return void ResponseUtil.noContent(res);
+      return ResponseUtil.noContent(res);
     } catch (error) {
       if (error instanceof NotFoundError) {
-        return void ResponseUtil.notFound(res, error.message);
+        return ResponseUtil.notFound(res, error.message);
       }
 
-      return void ResponseUtil.serverError(
+      return ResponseUtil.serverError(
         res,
         "An unexpected error occurred while deleting employee."
       );

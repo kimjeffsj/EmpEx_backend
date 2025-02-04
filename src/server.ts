@@ -28,6 +28,8 @@ const port = process.env.PORT || 3000;
 
 // Middleware setup
 app.use(cors());
+app.use(responseHandler);
+app.use(express.json());
 
 app.use(
   helmet({
@@ -58,9 +60,6 @@ app.use(
     xssFilter: true,
   })
 );
-
-app.use(express.json());
-app.use(responseHandler);
 
 // Swagger Documentation
 app.use(
