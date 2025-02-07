@@ -1,5 +1,5 @@
 import { DataSource } from "typeorm";
-import { SINService } from "../sin.service";
+import { SINService } from "../service/sin.service";
 import {
   ForbiddenError,
   NotFoundError,
@@ -8,7 +8,7 @@ import {
 import { DatabaseError } from "pg";
 import { ResponseUtil } from "@/shared/middleware/response.middleware";
 import { Request, Response } from "express";
-import { SINAccessType } from "@/shared/types/sin.types";
+import { CreateSINDto, SINAccessType } from "@/shared/types/sin.types";
 
 export class SINController {
   private sinService: SINService;
@@ -18,10 +18,13 @@ export class SINController {
   }
 
   // Save new SIN record and send response
-  async saveSIN(req: Request, res: Response) {
+  async createSIN(req: Request, res: Response) {
     try {
-      const { employeeId, sinNumber } = req.body;
-      const newSIN = await this.sinService.saveSIN(employeeId, sinNumber);
+      const sinData: CreateSINDto = req.body;
+      const newSIN = await this.sinService.saveSIN(
+        sinData.employeeId,
+        sinData.sinNumber
+      );
 
       return ResponseUtil.created(res, newSIN.toPublicView());
     } catch (error) {
@@ -43,9 +46,9 @@ export class SINController {
   }
 
   // Retrieve SIN information and send response
-  async getSIN(req: Request, res: Response) {
+  async getSIN(req: Request<{ employeeId: string }>, res: Response) {
     try {
-      const { employeeId } = req.params;
+      const employeeId = parseInt(req.params.employeeId);
       const { accessType } = req.query;
       const requestingUserId = req.user?.id;
 
@@ -53,12 +56,11 @@ export class SINController {
         throw new ForbiddenError("Authentication required");
       }
 
-      const ipAddress = req.ip;
       const sin = await this.sinService.getSIN(
         requestingUserId,
-        parseInt(employeeId),
+        employeeId,
         accessType as SINAccessType,
-        ipAddress
+        req.ip
       );
 
       return ResponseUtil.success(res, { sin });
