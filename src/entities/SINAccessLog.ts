@@ -29,7 +29,7 @@ export class SINAccessLog {
   user: User;
 
   @Column({ type: "varchar", length: 20 })
-  accessType: "VIEW" | "T4_ACCESS";
+  accessType: "VIEW" | "ADMIN_ACCESS";
 
   @Column({ type: "varchar", length: 45, nullable: true })
   ipAddress: string;
