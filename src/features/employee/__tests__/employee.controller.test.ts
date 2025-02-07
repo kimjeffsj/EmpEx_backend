@@ -314,15 +314,7 @@ describe("EmployeeController", () => {
 
   describe("getEmployees", () => {
     const mockEmployeesList = {
-      data: [
-        {
-          id: 1,
-          ...mockEmployeeData,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          resignedDate: null,
-        },
-      ],
+      data: [mockEmployee],
       total: 1,
       page: 1,
       limit: 10,

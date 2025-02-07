@@ -8,6 +8,7 @@ import {
   ValidationError,
 } from "@/shared/types/error.types";
 import { TestDataSource } from "@/app/config/test-database";
+import { createMockResponse } from "@/test/utils/test.utils";
 
 jest.mock("../service/payroll.service");
 jest.mock("@/modules/excel/service/excel.service.ts");
@@ -17,8 +18,8 @@ describe("PayrollController", () => {
   let mockPayrollService: jest.Mocked<PayrollService>;
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
-  let jsonSpy: jest.Mock;
-  let statusSpy: jest.Mock;
+  let jsonSpy: jest.SpyInstance;
+  let statusSpy: jest.SpyInstance;
 
   const mockPayPeriod = {
     id: 1,
@@ -32,14 +33,10 @@ describe("PayrollController", () => {
   };
 
   beforeEach(() => {
-    jsonSpy = jest.fn();
-    statusSpy = jest.fn().mockReturnThis();
-    mockResponse = {
-      status: statusSpy,
-      json: jsonSpy,
-      send: jest.fn(),
-      setHeader: jest.fn(),
-    };
+    const mockRes = createMockResponse();
+    mockResponse = mockRes.mockResponse;
+    jsonSpy = jest.spyOn(mockResponse, "json");
+    statusSpy = jest.spyOn(mockResponse, "status");
 
     mockPayrollService = new PayrollService(
       TestDataSource
@@ -66,7 +63,11 @@ describe("PayrollController", () => {
       );
 
       expect(statusSpy).toHaveBeenCalledWith(201);
-      expect(jsonSpy).toHaveBeenCalledWith(mockPayPeriod);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        success: true,
+        data: mockPayPeriod,
+        timestamp: expect.any(String),
+      });
     });
 
     it("should handle force recalculation", async () => {
@@ -93,7 +94,11 @@ describe("PayrollController", () => {
       );
 
       expect(statusSpy).toHaveBeenCalledWith(201);
-      expect(jsonSpy).toHaveBeenCalledWith(recalculatedPayPeriod);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        success: true,
+        data: recalculatedPayPeriod,
+        timestamp: expect.any(String),
+      });
       expect(mockPayrollService.getOrCreatePayPeriod).toHaveBeenCalledWith(
         PayPeriodType.FIRST_HALF,
         2024,
@@ -118,8 +123,13 @@ describe("PayrollController", () => {
 
       expect(statusSpy).toHaveBeenCalledWith(400);
       expect(jsonSpy).toHaveBeenCalledWith({
-        code: "VALIDATION_ERROR",
-        message: "Invalid period type",
+        success: false,
+        data: null,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Invalid period type",
+        },
+        timestamp: expect.any(String),
       });
     });
 
@@ -139,8 +149,13 @@ describe("PayrollController", () => {
 
       expect(statusSpy).toHaveBeenCalledWith(400);
       expect(jsonSpy).toHaveBeenCalledWith({
-        code: "VALIDATION_ERROR",
-        message: "Invalid year",
+        success: false,
+        data: null,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Invalid year",
+        },
+        timestamp: expect.any(String),
       });
     });
 
@@ -163,8 +178,13 @@ describe("PayrollController", () => {
 
       expect(statusSpy).toHaveBeenCalledWith(500);
       expect(jsonSpy).toHaveBeenCalledWith({
-        code: "DATABASE_ERROR",
-        message: "Database connection failed",
+        success: false,
+        data: null,
+        error: {
+          code: "DATABASE_ERROR",
+          message: "Database connection failed",
+        },
+        timestamp: expect.any(String),
       });
     });
   });
@@ -182,7 +202,11 @@ describe("PayrollController", () => {
         mockResponse as Response
       );
 
-      expect(jsonSpy).toHaveBeenCalledWith(mockPayPeriod);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        success: true,
+        data: mockPayPeriod,
+        timestamp: expect.any(String),
+      });
     });
 
     it("should handle NotFoundError", async () => {
@@ -200,8 +224,13 @@ describe("PayrollController", () => {
 
       expect(statusSpy).toHaveBeenCalledWith(404);
       expect(jsonSpy).toHaveBeenCalledWith({
-        code: "NOT_FOUND",
-        message: "PayPeriod not found",
+        success: false,
+        data: null,
+        error: {
+          code: "NOT_FOUND",
+          message: "PayPeriod not found",
+        },
+        timestamp: expect.any(String),
       });
     });
   });
@@ -227,7 +256,17 @@ describe("PayrollController", () => {
         mockResponse as Response
       );
 
-      expect(jsonSpy).toHaveBeenCalledWith(mockPayPeriodsList);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        success: true,
+        data: mockPayPeriodsList.data,
+        meta: {
+          page: mockPayPeriodsList.page,
+          limit: mockPayPeriodsList.limit,
+          total: mockPayPeriodsList.total,
+          totalPages: mockPayPeriodsList.totalPages,
+        },
+        timestamp: expect.any(String),
+      });
     });
 
     it("should handle date filters correctly", async () => {
@@ -278,7 +317,11 @@ describe("PayrollController", () => {
         mockResponse as Response
       );
 
-      expect(jsonSpy).toHaveBeenCalledWith(completedPayPeriod);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        success: true,
+        data: completedPayPeriod,
+        timestamp: expect.any(String),
+      });
     });
 
     it("should handle ValidationError for already completed period", async () => {
@@ -298,8 +341,13 @@ describe("PayrollController", () => {
 
       expect(statusSpy).toHaveBeenCalledWith(400);
       expect(jsonSpy).toHaveBeenCalledWith({
-        code: "VALIDATION_ERROR",
-        message: "Pay period is already completed",
+        success: false,
+        data: null,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Pay period is already completed",
+        },
+        timestamp: expect.any(String),
       });
     });
 
@@ -318,8 +366,13 @@ describe("PayrollController", () => {
 
       expect(statusSpy).toHaveBeenCalledWith(404);
       expect(jsonSpy).toHaveBeenCalledWith({
-        code: "NOT_FOUND",
-        message: "PayPeriod not found",
+        success: false,
+        data: null,
+        error: {
+          code: "NOT_FOUND",
+          message: "PayPeriod not found",
+        },
+        timestamp: expect.any(String),
       });
     });
   });
@@ -341,11 +394,16 @@ describe("PayrollController", () => {
         mockResponse as Response
       );
 
+      // TODO: fix test error, returning undefined
       expect(mockResponse.setHeader).toHaveBeenCalledWith(
         "Content-Type",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
       );
-      expect(mockResponse.send).toHaveBeenCalledWith(mockBuffer);
+      expect(mockResponse.send).toHaveBeenCalledWith({
+        success: true,
+        data: mockBuffer,
+        timestamp: expect.any(String),
+      });
     });
 
     it("should handle NotFoundError", async () => {
@@ -363,8 +421,13 @@ describe("PayrollController", () => {
 
       expect(statusSpy).toHaveBeenCalledWith(404);
       expect(jsonSpy).toHaveBeenCalledWith({
-        code: "NOT_FOUND",
-        message: "PayPeriod not found",
+        success: false,
+        data: null,
+        error: {
+          code: "NOT_FOUND",
+          message: "PayPeriod not found",
+        },
+        timestamp: expect.any(String),
       });
     });
   });
