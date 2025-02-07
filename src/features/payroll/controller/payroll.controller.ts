@@ -11,6 +11,7 @@ import { ExcelService } from "@/modules/excel/service/excel.service";
 import { EmployeeService } from "@/features/employee/service/employee.service";
 import { getPayPeriodCode } from "../../../shared/utils/payPeriodFormatter.utils";
 import { DataSource } from "typeorm";
+import { ResponseUtil } from "@/shared/middleware/response.middleware";
 
 export class PayrollController {
   private payrollService: PayrollService;
@@ -52,25 +53,18 @@ export class PayrollController {
         { forceRecalculate: !!forceRecalculate }
       );
 
-      res.status(201).json(payPeriod);
+      return ResponseUtil.created(res, payPeriod);
     } catch (error) {
       if (error instanceof ValidationError) {
-        res.status(400).json({
-          code: error.code,
-          message: error.message,
-          details: error.details,
-        });
-      } else if (error instanceof DatabaseError) {
-        res.status(500).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else {
-        res.status(500).json({
-          code: "UNEXPECTED_ERROR",
-          message: "An unexpected error occurred while creating pay period.",
-        });
+        return ResponseUtil.validationError(res, error.message, error.details);
       }
+      if (error instanceof DatabaseError) {
+        return ResponseUtil.databaseError(res, error.message);
+      }
+      return ResponseUtil.serverError(
+        res,
+        "An unexpected error occurred while creating pay period."
+      );
     }
   }
 
@@ -79,24 +73,18 @@ export class PayrollController {
     try {
       const id = parseInt(req.params.id);
       const payPeriod = await this.payrollService.getPayPeriodById(id);
-      res.json(payPeriod);
+      return ResponseUtil.success(res, payPeriod);
     } catch (error) {
       if (error instanceof NotFoundError) {
-        res.status(404).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else if (error instanceof DatabaseError) {
-        res.status(500).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else {
-        res.status(500).json({
-          code: "UNEXPECTED_ERROR",
-          message: "An unexpected error occurred while fetching pay period.",
-        });
+        return ResponseUtil.notFound(res, error.message);
       }
+      if (error instanceof DatabaseError) {
+        return ResponseUtil.databaseError(res, error.message);
+      }
+      return ResponseUtil.serverError(
+        res,
+        "An unexpected error occurred while fetching pay period."
+      );
     }
   }
 
@@ -119,25 +107,24 @@ export class PayrollController {
       };
 
       const payPeriods = await this.payrollService.getPayPeriods(filters);
-      res.json(payPeriods);
+
+      return ResponseUtil.success(res, payPeriods.data, {
+        page: payPeriods.page,
+        limit: payPeriods.limit,
+        total: payPeriods.total,
+        totalPages: payPeriods.totalPages,
+      });
     } catch (error) {
       if (error instanceof ValidationError) {
-        res.status(400).json({
-          code: error.code,
-          message: error.message,
-          details: error.details,
-        });
-      } else if (error instanceof DatabaseError) {
-        res.status(500).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else {
-        res.status(500).json({
-          code: "UNEXPECTED_ERROR",
-          message: "An unexpected error occurred while fetching pay periods.",
-        });
+        return ResponseUtil.validationError(res, error.message, error.details);
       }
+      if (error instanceof DatabaseError) {
+        return ResponseUtil.databaseError(res, error.message);
+      }
+      return ResponseUtil.serverError(
+        res,
+        "An unexpected error occurred while fetching pay periods."
+      );
     }
   }
 
@@ -148,30 +135,22 @@ export class PayrollController {
       const completedPayPeriod = await this.payrollService.completePayPeriod(
         id
       );
-      res.json(completedPayPeriod);
+
+      return ResponseUtil.success(res, completedPayPeriod);
     } catch (error) {
       if (error instanceof NotFoundError) {
-        res.status(404).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else if (error instanceof ValidationError) {
-        res.status(400).json({
-          code: error.code,
-          message: error.message,
-          details: error.details,
-        });
-      } else if (error instanceof DatabaseError) {
-        res.status(500).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else {
-        res.status(500).json({
-          code: "UNEXPECTED_ERROR",
-          message: "An unexpected error occurred while completing pay period.",
-        });
+        return ResponseUtil.notFound(res, error.message);
       }
+      if (error instanceof ValidationError) {
+        return ResponseUtil.validationError(res, error.message, error.details);
+      }
+      if (error instanceof DatabaseError) {
+        return ResponseUtil.databaseError(res, error.message);
+      }
+      return ResponseUtil.serverError(
+        res,
+        "An unexpected error occurred while completing pay period."
+      );
     }
   }
 
@@ -197,31 +176,21 @@ export class PayrollController {
         `attachment; filename=payroll_report_${periodCode}.xlsx`
       );
 
-      res.send(buffer);
+      return res.send(buffer);
     } catch (error) {
       if (error instanceof NotFoundError) {
-        res.status(404).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else if (error instanceof ValidationError) {
-        res.status(400).json({
-          code: error.code,
-          message: error.message,
-          details: error.details,
-        });
-      } else if (error instanceof DatabaseError) {
-        res.status(500).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else {
-        res.status(500).json({
-          code: "UNEXPECTED_ERROR",
-          message:
-            "An unexpected error occurred while generating payroll report.",
-        });
+        return ResponseUtil.notFound(res, error.message);
       }
+      if (error instanceof ValidationError) {
+        return ResponseUtil.validationError(res, error.message, error.details);
+      }
+      if (error instanceof DatabaseError) {
+        return ResponseUtil.databaseError(res, error.message);
+      }
+      return ResponseUtil.serverError(
+        res,
+        "An unexpected error occurred while generating payroll report."
+      );
     }
   }
 
@@ -240,30 +209,21 @@ export class PayrollController {
         `attachment; filename=${currentYear}_t4_report.xlsx`
       );
 
-      res.send(buffer);
+      return res.send(buffer);
     } catch (error) {
       if (error instanceof NotFoundError) {
-        res.status(404).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else if (error instanceof ValidationError) {
-        res.status(400).json({
-          code: error.code,
-          message: error.message,
-          details: error.details,
-        });
-      } else if (error instanceof DatabaseError) {
-        res.status(500).json({
-          code: error.code,
-          message: error.message,
-        });
-      } else {
-        res.status(500).json({
-          code: "UNEXPECTED_ERROR",
-          message: "An unexpected error occurred while generating T4 report.",
-        });
+        return ResponseUtil.notFound(res, error.message);
       }
+      if (error instanceof ValidationError) {
+        return ResponseUtil.validationError(res, error.message, error.details);
+      }
+      if (error instanceof DatabaseError) {
+        return ResponseUtil.databaseError(res, error.message);
+      }
+      return ResponseUtil.serverError(
+        res,
+        "An unexpected error occurred while generating T4 report."
+      );
     }
   }
 }

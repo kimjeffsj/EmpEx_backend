@@ -19,6 +19,7 @@ import { createAuthRouter } from "./features/auth/routes/auth.routes";
 import { getDataSource } from "./app/config/data-source";
 import { validateEnvVariables } from "./shared/\butils/env.validator";
 import { AuthService } from "./features/auth/service/auth.service";
+import { responseHandler } from "./shared/middleware/response.middleware";
 
 // Environment variables setup
 
@@ -27,6 +28,8 @@ const port = process.env.PORT || 3000;
 
 // Middleware setup
 app.use(cors());
+app.use(responseHandler);
+app.use(express.json());
 
 app.use(
   helmet({
@@ -57,8 +60,6 @@ app.use(
     xssFilter: true,
   })
 );
-
-app.use(express.json());
 
 // Swagger Documentation
 app.use(
