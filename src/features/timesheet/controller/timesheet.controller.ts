@@ -30,13 +30,13 @@ export class TimesheetController {
       return ResponseUtil.created(res, newTimesheet);
     } catch (error) {
       if (error instanceof ValidationError) {
-        return ResponseUtil.badRequest(res, error.message, error.details);
+        return ResponseUtil.validationError(res, error.message, error.details);
       }
       if (error instanceof NotFoundError) {
         return ResponseUtil.notFound(res, error.message);
       }
       if (error instanceof DatabaseError) {
-        return ResponseUtil.serverError(res, error.message);
+        return ResponseUtil.databaseError(res, error.message);
       }
       return ResponseUtil.serverError(
         res,
@@ -56,7 +56,7 @@ export class TimesheetController {
         return ResponseUtil.notFound(res, error.message);
       }
       if (error instanceof DatabaseError) {
-        return ResponseUtil.serverError(res, error.message);
+        return ResponseUtil.databaseError(res, error.message);
       }
       return ResponseUtil.serverError(
         res,
@@ -93,10 +93,10 @@ export class TimesheetController {
       });
     } catch (error) {
       if (error instanceof ValidationError) {
-        return ResponseUtil.badRequest(res, error.message, error.details);
+        return ResponseUtil.validationError(res, error.message, error.details);
       }
       if (error instanceof DatabaseError) {
-        return ResponseUtil.serverError(res, error.message);
+        return ResponseUtil.databaseError(res, error.message);
       }
       return ResponseUtil.serverError(
         res,
@@ -117,13 +117,13 @@ export class TimesheetController {
       return ResponseUtil.success(res, updatedTimesheet);
     } catch (error) {
       if (error instanceof ValidationError) {
-        return ResponseUtil.badRequest(res, error.message, error.details);
+        return ResponseUtil.validationError(res, error.message, error.details);
       }
       if (error instanceof NotFoundError) {
         return ResponseUtil.notFound(res, error.message);
       }
       if (error instanceof DatabaseError) {
-        return ResponseUtil.serverError(res, error.message);
+        return ResponseUtil.databaseError(res, error.message);
       }
       return ResponseUtil.serverError(
         res,
@@ -142,7 +142,7 @@ export class TimesheetController {
         return ResponseUtil.notFound(res, error.message);
       }
       if (error instanceof DatabaseError) {
-        return ResponseUtil.serverError(res, error.message);
+        return ResponseUtil.databaseError(res, error.message);
       }
       return ResponseUtil.serverError(
         res,

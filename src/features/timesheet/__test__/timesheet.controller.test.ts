@@ -9,6 +9,7 @@ import { NotFoundError, ValidationError } from "@/shared/types/error.types";
 import { Employee } from "@/entities/Employee";
 import { Timesheet } from "@/entities/Timesheet";
 import { TestDataSource } from "@/app/config/test-database";
+import { createMockResponse } from "@/test/utils/test.utils";
 
 jest.mock("../service/timesheet.service");
 
@@ -17,8 +18,8 @@ describe("TimesheetController", () => {
   let mockTimesheetService: jest.Mocked<TimesheetService>;
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
-  let jsonSpy: jest.Mock;
-  let statusSpy: jest.Mock;
+  let jsonSpy: jest.SpyInstance;
+  let statusSpy: jest.SpyInstance;
 
   const mockEmployee: Employee = {
     id: 1,
@@ -58,13 +59,10 @@ describe("TimesheetController", () => {
   } as Timesheet;
 
   beforeEach(() => {
-    jsonSpy = jest.fn();
-    statusSpy = jest.fn().mockReturnThis();
-    mockResponse = {
-      status: statusSpy,
-      json: jsonSpy,
-      send: jest.fn(),
-    };
+    const mockRes = createMockResponse();
+    mockResponse = mockRes.mockResponse;
+    jsonSpy = jest.spyOn(mockResponse, "json");
+    statusSpy = jest.spyOn(mockResponse, "status");
 
     mockTimesheetService = new TimesheetService(
       TestDataSource
@@ -84,7 +82,11 @@ describe("TimesheetController", () => {
       );
 
       expect(statusSpy).toHaveBeenCalledWith(201);
-      expect(jsonSpy).toHaveBeenCalledWith(mockTimesheet);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        success: true,
+        data: mockTimesheet,
+        timestamp: expect.any(String),
+      });
     });
 
     it("should handle ValidationError", async () => {
@@ -99,8 +101,13 @@ describe("TimesheetController", () => {
 
       expect(statusSpy).toHaveBeenCalledWith(400);
       expect(jsonSpy).toHaveBeenCalledWith({
-        code: "VALIDATION_ERROR",
-        message: "Invalid input",
+        success: false,
+        data: null,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Invalid input",
+        },
+        timestamp: expect.any(String),
       });
     });
 
@@ -116,8 +123,13 @@ describe("TimesheetController", () => {
 
       expect(statusSpy).toHaveBeenCalledWith(404);
       expect(jsonSpy).toHaveBeenCalledWith({
-        code: "NOT_FOUND",
-        message: "Employee not found",
+        success: false,
+        data: null,
+        error: {
+          code: "NOT_FOUND",
+          message: "Employee not found",
+        },
+        timestamp: expect.any(String),
       });
     });
   });
@@ -132,7 +144,11 @@ describe("TimesheetController", () => {
         mockResponse as Response
       );
 
-      expect(jsonSpy).toHaveBeenCalledWith(mockTimesheet);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        success: true,
+        data: mockTimesheet,
+        timestamp: expect.any(String),
+      });
     });
 
     it("should handle NotFoundError", async () => {
@@ -147,8 +163,13 @@ describe("TimesheetController", () => {
 
       expect(statusSpy).toHaveBeenCalledWith(404);
       expect(jsonSpy).toHaveBeenCalledWith({
-        code: "NOT_FOUND",
-        message: "Timesheet not found",
+        success: false,
+        data: null,
+        error: {
+          code: "NOT_FOUND",
+          message: "Timesheet not found",
+        },
+        timestamp: expect.any(String),
       });
     });
   });
@@ -168,7 +189,11 @@ describe("TimesheetController", () => {
         mockResponse as Response
       );
 
-      expect(jsonSpy).toHaveBeenCalledWith(updatedTimesheet);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        success: true,
+        data: updatedTimesheet,
+        timestamp: expect.any(String),
+      });
     });
 
     it("should handle NotFoundError", async () => {
@@ -183,8 +208,13 @@ describe("TimesheetController", () => {
 
       expect(statusSpy).toHaveBeenCalledWith(404);
       expect(jsonSpy).toHaveBeenCalledWith({
-        code: "NOT_FOUND",
-        message: "Timesheet not found",
+        success: false,
+        data: null,
+        error: {
+          code: "NOT_FOUND",
+          message: "Timesheet not found",
+        },
+        timestamp: expect.any(String),
       });
     });
   });
@@ -214,8 +244,13 @@ describe("TimesheetController", () => {
 
       expect(statusSpy).toHaveBeenCalledWith(404);
       expect(jsonSpy).toHaveBeenCalledWith({
-        code: "NOT_FOUND",
-        message: "Timesheet not found",
+        success: false,
+        data: null,
+        error: {
+          code: "NOT_FOUND",
+          message: "Timesheet not found",
+        },
+        timestamp: expect.any(String),
       });
     });
   });
