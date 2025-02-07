@@ -33,7 +33,7 @@ export class EmployeeController {
       return ResponseUtil.created(res, newEmployee);
     } catch (error) {
       if (error instanceof ValidationError) {
-        return ResponseUtil.badRequest(res, error.message, error.details);
+        return ResponseUtil.validationError(res, error.message, error.details);
       }
       if (error instanceof DuplicateError) {
         return ResponseUtil.error(
@@ -45,7 +45,7 @@ export class EmployeeController {
         );
       }
       if (error instanceof DatabaseError) {
-        return ResponseUtil.serverError(res, error.message);
+        return ResponseUtil.databaseError(res, error.message);
       }
 
       return ResponseUtil.serverError(
@@ -95,7 +95,7 @@ export class EmployeeController {
       });
     } catch (error) {
       if (error instanceof ValidationError) {
-        return ResponseUtil.badRequest(res, error.message, error.details);
+        return ResponseUtil.validationError(res, error.message, error.details);
       }
 
       return ResponseUtil.serverError(
@@ -118,7 +118,7 @@ export class EmployeeController {
       return ResponseUtil.success(res, updatedEmployee);
     } catch (error) {
       if (error instanceof ValidationError) {
-        return ResponseUtil.badRequest(res, error.message, error.details);
+        return ResponseUtil.validationError(res, error.message, error.details);
       }
       if (error instanceof NotFoundError) {
         return ResponseUtil.notFound(res, error.message);

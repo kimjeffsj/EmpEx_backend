@@ -14,6 +14,7 @@ import {
 } from "@/shared/types/error.types";
 import { mockEmployeeData } from "@/test/employee.fixture.ts";
 import { TestDataSource } from "@/app/config/test-database";
+import { createMockResponse } from "@/test/utils/test.utils";
 
 // EmployeeService Mock
 jest.mock("../service/employee.service");
@@ -22,9 +23,9 @@ describe("EmployeeController", () => {
   let employeeController: EmployeeController;
   let mockEmployeeService: jest.Mocked<EmployeeService>;
   let mockRequest: Partial<Request>;
-  let mockResponse: Partial<Response>;
-  let jsonSpy: jest.Mock;
-  let statusSpy: jest.Mock;
+  let mockResponse: Response;
+  let jsonSpy: jest.SpyInstance;
+  let statusSpy: jest.SpyInstance;
 
   const mockEmployee = {
     id: 1,
@@ -35,15 +36,11 @@ describe("EmployeeController", () => {
   };
 
   beforeEach(() => {
-    jsonSpy = jest.fn();
-    statusSpy = jest.fn().mockReturnThis();
-    mockResponse = {
-      status: statusSpy,
-      json: jsonSpy,
-      send: jest.fn(),
-    };
+    const mockRes = createMockResponse();
+    mockResponse = mockRes.mockResponse;
+    jsonSpy = jest.spyOn(mockResponse, "json");
+    statusSpy = jest.spyOn(mockResponse, "status");
 
-    // EmployeeService mocking
     mockEmployeeService = new EmployeeService(
       TestDataSource
     ) as jest.Mocked<EmployeeService>;
@@ -65,7 +62,11 @@ describe("EmployeeController", () => {
       );
 
       expect(statusSpy).toHaveBeenCalledWith(201);
-      expect(jsonSpy).toHaveBeenCalledWith(mockEmployee);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        success: true,
+        data: mockEmployee,
+        timestamp: expect.any(String),
+      });
     });
 
     it("should handle ValidationError", async () => {
@@ -83,8 +84,13 @@ describe("EmployeeController", () => {
 
       expect(statusSpy).toHaveBeenCalledWith(400);
       expect(jsonSpy).toHaveBeenCalledWith({
-        code: "VALIDATION_ERROR",
-        message: "Invalid input",
+        success: false,
+        data: null,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Invalid input",
+        },
+        timestamp: expect.any(String),
       });
     });
 
@@ -103,8 +109,13 @@ describe("EmployeeController", () => {
 
       expect(statusSpy).toHaveBeenCalledWith(409);
       expect(jsonSpy).toHaveBeenCalledWith({
-        code: "DUPLICATE_ERROR",
-        message: "Employee with this email already exists",
+        success: false,
+        data: null,
+        error: {
+          code: "DUPLICATE_ERROR",
+          message: "Employee with this email already exists",
+        },
+        timestamp: expect.any(String),
       });
     });
 
@@ -123,8 +134,13 @@ describe("EmployeeController", () => {
 
       expect(statusSpy).toHaveBeenCalledWith(500);
       expect(jsonSpy).toHaveBeenCalledWith({
-        code: "DATABASE_ERROR",
-        message: "Database connection failed",
+        success: false,
+        data: null,
+        error: {
+          code: "DATABASE_ERROR",
+          message: "Database connection failed",
+        },
+        timestamp: expect.any(String),
       });
     });
   });
@@ -142,7 +158,11 @@ describe("EmployeeController", () => {
         mockResponse as Response
       );
 
-      expect(jsonSpy).toHaveBeenCalledWith(mockEmployee);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        success: true,
+        data: mockEmployee,
+        timestamp: expect.any(String),
+      });
     });
 
     it("should handle NotFoundError", async () => {
@@ -160,8 +180,13 @@ describe("EmployeeController", () => {
 
       expect(statusSpy).toHaveBeenCalledWith(404);
       expect(jsonSpy).toHaveBeenCalledWith({
-        code: "NOT_FOUND",
-        message: "Employee not found",
+        success: false,
+        data: null,
+        error: {
+          code: "NOT_FOUND",
+          message: "Employee not found",
+        },
+        timestamp: expect.any(String),
       });
     });
   });
@@ -185,7 +210,11 @@ describe("EmployeeController", () => {
         mockResponse as Response
       );
 
-      expect(jsonSpy).toHaveBeenCalledWith(updatedEmployee);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        success: true,
+        data: updatedEmployee,
+        timestamp: expect.any(String),
+      });
     });
 
     it("should handle NotFoundError", async () => {
@@ -204,8 +233,13 @@ describe("EmployeeController", () => {
 
       expect(statusSpy).toHaveBeenCalledWith(404);
       expect(jsonSpy).toHaveBeenCalledWith({
-        code: "NOT_FOUND",
-        message: "Employee not found",
+        success: false,
+        data: null,
+        error: {
+          code: "NOT_FOUND",
+          message: "Employee not found",
+        },
+        timestamp: expect.any(String),
       });
     });
 
@@ -225,8 +259,13 @@ describe("EmployeeController", () => {
 
       expect(statusSpy).toHaveBeenCalledWith(409);
       expect(jsonSpy).toHaveBeenCalledWith({
-        code: "DUPLICATE_ERROR",
-        message: "Employee with this email already exists",
+        success: false,
+        data: null,
+        error: {
+          code: "DUPLICATE_ERROR",
+          message: "Employee with this email already exists",
+        },
+        timestamp: expect.any(String),
       });
     });
   });
@@ -262,15 +301,28 @@ describe("EmployeeController", () => {
 
       expect(statusSpy).toHaveBeenCalledWith(404);
       expect(jsonSpy).toHaveBeenCalledWith({
-        code: "NOT_FOUND",
-        message: "Employee not found",
+        success: false,
+        data: null,
+        error: {
+          code: "NOT_FOUND",
+          message: "Employee not found",
+        },
+        timestamp: expect.any(String),
       });
     });
   });
 
   describe("getEmployees", () => {
     const mockEmployeesList = {
-      data: [mockEmployee],
+      data: [
+        {
+          id: 1,
+          ...mockEmployeeData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          resignedDate: null,
+        },
+      ],
       total: 1,
       page: 1,
       limit: 10,
@@ -289,7 +341,17 @@ describe("EmployeeController", () => {
         mockResponse as Response
       );
 
-      expect(jsonSpy).toHaveBeenCalledWith(mockEmployeesList);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        success: true,
+        data: mockEmployeesList.data,
+        meta: {
+          page: mockEmployeesList.page,
+          limit: mockEmployeesList.limit,
+          total: mockEmployeesList.total,
+          totalPages: mockEmployeesList.totalPages,
+        },
+        timestamp: expect.any(String),
+      });
     });
 
     it("should handle ValidationError for invalid filters", async () => {
@@ -311,8 +373,13 @@ describe("EmployeeController", () => {
 
       expect(statusSpy).toHaveBeenCalledWith(400);
       expect(jsonSpy).toHaveBeenCalledWith({
-        code: "VALIDATION_ERROR",
-        message: "Invalid pagination parameters",
+        success: false,
+        data: null,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Invalid pagination parameters",
+        },
+        timestamp: expect.any(String),
       });
     });
   });

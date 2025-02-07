@@ -75,6 +75,15 @@ export class ResponseUtil {
     return this.error(res, "BAD_REQUEST", message, details, 400);
   }
 
+  // Send a validation error (HTTP status 400)
+  static validationError(
+    res: Response,
+    message: string,
+    details?: any
+  ): Response {
+    return this.error(res, "VALIDATION_ERROR", message, details, 400);
+  }
+
   // Send an unauthorized error (HTTP status 401)
   static unauthorized(
     res: Response,
@@ -105,5 +114,14 @@ export class ResponseUtil {
     message: string = "Internal server error"
   ): Response {
     return this.error(res, "SERVER_ERROR", message, undefined, 500);
+  }
+
+  // Send a database error (HTTP status 500)
+  static databaseError(
+    res: Response,
+    message: string = "Database operation failed",
+    details?: any
+  ): Response {
+    return this.error(res, "DATABASE_ERROR", message, details, 500);
   }
 }
