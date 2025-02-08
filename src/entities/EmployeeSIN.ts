@@ -43,7 +43,7 @@ export class EmployeeSIN {
   @Column({ type: "varchar", length: 3 })
   last3: string; // Last 3 digits
 
-  @Column({ type: "varchar", length: 60 })
+  @Column({ type: "varchar", length: 128 })
   @Index()
   searchHash: string; // Search hash
 

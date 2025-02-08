@@ -1,6 +1,7 @@
-import { DataSource, Repository } from "typeorm";
+import { DataSource, QueryFailedError, Repository } from "typeorm";
 import { EmployeeSIN, SINAccessLevel } from "@/entities/EmployeeSIN";
 import {
+  DatabaseError,
   ForbiddenError,
   NotFoundError,
   ValidationError,
@@ -31,13 +32,13 @@ export class SINService {
     // Initialize and verify encryption key
     const key = process.env.ENCRYPTION_KEY;
     if (!key || !this.FIXED_SALT) {
-      throw new Error("Required encryption configuration missing");
+      throw new DatabaseError("Required encryption configuration missing");
     }
 
     // Expect Base64-encoded key
     this.ENCRYPTION_KEY = Buffer.from(key, "base64");
     if (this.ENCRYPTION_KEY.length !== this.KEY_LENGTH) {
-      throw new Error(`Encryption key must be ${this.KEY_LENGTH} bytes`);
+      throw new DatabaseError("Invalid encryption key length");
     }
   }
 
@@ -54,6 +55,14 @@ export class SINService {
 
     if (!employee) {
       throw new NotFoundError("Employee");
+    }
+
+    const existingSIN = await this.sinRepository.findOne({
+      where: { employeeId },
+    });
+
+    if (existingSIN) {
+      throw new ValidationError("SIN already exists for this employee");
     }
 
     // Extract last 3 digits
@@ -79,82 +88,93 @@ export class SINService {
   // Retrieve SIN number (based on permission)
   async getSIN(
     requestingUserId: number,
-    targetEmployeeId: number,
+    employeeId: number,
     accessType: SINAccessType,
     ipAddress: string
   ): Promise<string> {
-    const sinData = await this.sinRepository.findOne({
-      where: { employeeId: targetEmployeeId },
-    });
+    try {
+      const [sinData, requestingUser] = await Promise.all([
+        this.sinRepository.findOne({ where: { employeeId } }),
+        this.userRepository.findOne({ where: { id: requestingUserId } }),
+      ]);
 
-    if (!sinData) {
-      throw new NotFoundError("SIN data");
-    }
+      if (!sinData) {
+        throw new NotFoundError("SIN");
+      }
 
-    await this.logAccess(
-      requestingUserId,
-      targetEmployeeId,
-      accessType,
-      ipAddress
-    );
+      if (!requestingUser) {
+        throw new NotFoundError("User");
+      }
 
-    // Return full SIN for T4 access
-    if (
-      accessType === "ADMIN_ACCESS" &&
-      (await this.isManager(requestingUserId))
-    ) {
-      return await this.decryptSIN(sinData.encryptedData);
-    }
+      if (!this.hasAccess(requestingUser, employeeId, accessType)) {
+        throw new ForbiddenError("Insufficient permissions to access SIN data");
+      }
 
-    // Return only last 3 digits for standard access
-    if (
-      requestingUserId === targetEmployeeId ||
-      (await this.isManager(requestingUserId))
-    ) {
+      await this.logAccess(requestingUserId, employeeId, accessType, ipAddress);
+
+      if (
+        accessType === "ADMIN_ACCESS" &&
+        requestingUser.role === UserRole.MANAGER
+      ) {
+        return await this.decryptSIN(sinData.encryptedData);
+      }
+
       return `XXX-XXX-${sinData.last3}`;
+    } catch (error) {
+      if (error instanceof QueryFailedError) {
+        throw new DatabaseError(`Error retrieving SIN: ${error.message}`);
+      }
+      throw error;
     }
-
-    throw new ForbiddenError("Access denied");
   }
 
   // Encryption
   private async encryptSIN(sin: string): Promise<EncryptedSINData> {
-    const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv(
-      this.ALGORITHM,
-      this.ENCRYPTION_KEY,
-      iv
-    );
+    try {
+      const iv = crypto.randomBytes(16);
+      const cipher = crypto.createCipheriv(
+        this.ALGORITHM,
+        this.ENCRYPTION_KEY,
+        iv
+      );
 
-    const encrypted = Buffer.concat([
-      cipher.update(sin, "utf8"),
-      cipher.final(),
-    ]);
-    const authTag = cipher.getAuthTag();
+      const encrypted = Buffer.concat([
+        cipher.update(sin, "utf8"),
+        cipher.final(),
+      ]);
+      const authTag = cipher.getAuthTag();
 
-    return {
-      iv: iv.toString("base64"),
-      content: encrypted.toString("base64"),
-      authTag: authTag.toString("base64"),
-    };
+      return {
+        iv: iv.toString("base64"),
+        content: encrypted.toString("base64"),
+        authTag: authTag.toString("base64"),
+      };
+    } catch (error) {
+      throw new DatabaseError(`Encryption error: ${error.message}`);
+    }
   }
 
   // Decryption
   private async decryptSIN(encryptedData: EncryptedSINData): Promise<string> {
-    const iv = Buffer.from(encryptedData.iv, "base64");
-    const content = Buffer.from(encryptedData.content, "base64");
-    const authTag = Buffer.from(encryptedData.authTag, "base64");
+    try {
+      const iv = Buffer.from(encryptedData.iv, "base64");
+      const content = Buffer.from(encryptedData.content, "base64");
+      const authTag = Buffer.from(encryptedData.authTag, "base64");
 
-    const decipher = crypto.createDecipheriv(
-      this.ALGORITHM,
-      this.ENCRYPTION_KEY,
-      iv
-    );
-    decipher.setAuthTag(authTag);
+      const decipher = crypto.createDecipheriv(
+        this.ALGORITHM,
+        this.ENCRYPTION_KEY,
+        iv
+      );
+      decipher.setAuthTag(authTag);
 
-    return Buffer.concat([decipher.update(content), decipher.final()]).toString(
-      "utf8"
-    );
+      return Buffer.concat([
+        decipher.update(content),
+        decipher.final(),
+      ]).toString("utf8");
+    } catch (error) {
+      throw new DatabaseError(`Decryption error: ${error.message}`);
+    }
   }
 
   private async generateSearchHash(sin: string): Promise<string> {
@@ -197,11 +217,15 @@ export class SINService {
   }
 
   // Check user permissions
-  private async isManager(userId: number): Promise<boolean> {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-    });
-    return user?.role === UserRole.MANAGER;
+  private hasAccess(
+    user: User,
+    targetEmployeeId: number,
+    accessType: SINAccessType
+  ): boolean {
+    return (
+      user.role === UserRole.MANAGER ||
+      (accessType === "VIEW" && user.id === targetEmployeeId)
+    );
   }
 
   // Log access
@@ -211,25 +235,16 @@ export class SINService {
     accessType: SINAccessType,
     ipAddress: string
   ): Promise<void> {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
     try {
-      await queryRunner.manager.save(SINAccessLog, {
+      await this.sinAccessLogRepository.save({
         userId,
         employeeId,
         accessType,
         ipAddress,
         accessedAt: new Date(),
       });
-
-      await queryRunner.commitTransaction();
     } catch (error) {
-      await queryRunner.rollbackTransaction();
       console.error("Failed to log SIN access:", error);
-    } finally {
-      await queryRunner.release();
     }
   }
 }
