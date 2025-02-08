@@ -102,12 +102,12 @@ export class SINService {
         throw new NotFoundError("User");
       }
 
-      if (!this.hasAccess(requestingUser, employeeId, accessType)) {
-        throw new ForbiddenError("Insufficient permissions to access SIN data");
-      }
-
       if (!sinData) {
         throw new NotFoundError("SIN");
+      }
+
+      if (!this.hasAccess(requestingUser, employeeId, accessType)) {
+        throw new ForbiddenError("Insufficient permissions to access SIN data");
       }
 
       if (
@@ -240,6 +240,7 @@ export class SINService {
 
     // Employee can only access their information
     if (accessType === "VIEW") {
+      if (user?.id === targetEmployeeId) return true;
       const hasEmployeeAccess = user.employeeUsers?.some(
         (eu) => eu.employeeId === targetEmployeeId
       );
