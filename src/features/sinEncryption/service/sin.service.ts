@@ -98,10 +98,6 @@ export class SINService {
         this.userRepository.findOne({ where: { id: requestingUserId } }),
       ]);
 
-      if (!sinData) {
-        throw new NotFoundError("SIN");
-      }
-
       if (!requestingUser) {
         throw new NotFoundError("User");
       }
@@ -110,12 +106,20 @@ export class SINService {
         throw new ForbiddenError("Insufficient permissions to access SIN data");
       }
 
-      await this.logAccess(requestingUserId, employeeId, accessType, ipAddress);
+      if (!sinData) {
+        throw new NotFoundError("SIN");
+      }
 
       if (
         accessType === "ADMIN_ACCESS" &&
         requestingUser.role === UserRole.MANAGER
       ) {
+        await this.logAccess(
+          requestingUserId,
+          employeeId,
+          accessType,
+          ipAddress
+        );
         return await this.decryptSIN(sinData.encryptedData);
       }
 
@@ -168,10 +172,17 @@ export class SINService {
       );
       decipher.setAuthTag(authTag);
 
-      return Buffer.concat([
+      const decrypted = Buffer.concat([
         decipher.update(content),
         decipher.final(),
       ]).toString("utf8");
+
+      // Additional validation for decrypted SIN
+      if (!this.validateSINWithLuhn(decrypted)) {
+        throw new ValidationError("Decrypted SIN failed validation");
+      }
+
+      return decrypted;
     } catch (error) {
       throw new DatabaseError(`Decryption error: ${error.message}`);
     }
@@ -222,10 +233,20 @@ export class SINService {
     targetEmployeeId: number,
     accessType: SINAccessType
   ): boolean {
-    return (
-      user.role === UserRole.MANAGER ||
-      (accessType === "VIEW" && user.id === targetEmployeeId)
-    );
+    // Manager can only access full
+    if (user.role === UserRole.MANAGER && accessType === "ADMIN_ACCESS") {
+      return true;
+    }
+
+    // Employee can only access their information
+    if (accessType === "VIEW") {
+      const hasEmployeeAccess = user.employeeUsers?.some(
+        (eu) => eu.employeeId === targetEmployeeId
+      );
+      return hasEmployeeAccess || false;
+    }
+
+    return false;
   }
 
   // Log access
@@ -235,16 +256,18 @@ export class SINService {
     accessType: SINAccessType,
     ipAddress: string
   ): Promise<void> {
-    try {
-      await this.sinAccessLogRepository.save({
-        userId,
-        employeeId,
-        accessType,
-        ipAddress,
-        accessedAt: new Date(),
-      });
-    } catch (error) {
-      console.error("Failed to log SIN access:", error);
+    if (accessType === "ADMIN_ACCESS") {
+      try {
+        await this.sinAccessLogRepository.save({
+          userId,
+          employeeId,
+          accessType,
+          ipAddress,
+          accessedAt: new Date(),
+        });
+      } catch (error) {
+        console.error("Failed to log SIN access:", error);
+      }
     }
   }
 }

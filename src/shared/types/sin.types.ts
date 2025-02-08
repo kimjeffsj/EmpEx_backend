@@ -18,7 +18,7 @@ export interface EncryptedSINData {
 }
 
 // Response type
-export interface SINResponse {
+export interface BaseSINResponse {
   id: number;
   employeeId: number;
   last3: string;
@@ -27,8 +27,15 @@ export interface SINResponse {
   updatedAt: Date;
 }
 
-// Detailed response type for admin
-export interface AdminSINResponse extends SINResponse {
+// Employee view response
+export interface EmployeeSINResponse extends BaseSINResponse {
+  employeeId: number;
+  last3: string;
+  createdAt: Date;
+}
+
+// Admin view response
+export interface AdminSINResponse extends BaseSINResponse {
   encryptedData: EncryptedSINData;
   searchHash: string;
 }
@@ -36,14 +43,24 @@ export interface AdminSINResponse extends SINResponse {
 // SIN lookup/access related
 export type SINAccessType = "VIEW" | "ADMIN_ACCESS";
 
-export interface SINAccessLogResponse {
+// Access Log Response Types
+interface BaseSINAccessLogResponse {
   id: number;
-  userId: number;
   employeeId: number;
-  accessType: SINAccessType;
-  ipAddress: string;
   accessedAt: Date;
-  user?: {
+}
+
+// Employee access log
+export interface EmployeeSINAccessLogResponse extends BaseSINAccessLogResponse {
+  accessType: "ADMIN_ACCESS";
+}
+
+// Admin access log
+export interface AdminSINAccessLogResponse extends BaseSINAccessLogResponse {
+  userId: number;
+  accessType: "ADMIN_ACCESS";
+  ipAddress: string;
+  user: {
     email: string;
     firstName: string;
     lastName: string;
@@ -54,7 +71,6 @@ export interface SINAccessLogResponse {
 export interface SINAccessLogFilters {
   employeeId?: number;
   userId?: number;
-  accessType?: SINAccessType;
   startDate?: Date;
   endDate?: Date;
   page?: number;
@@ -63,7 +79,7 @@ export interface SINAccessLogFilters {
 
 // Paginated log response
 export interface PaginatedSINAccessLogResponse {
-  data: SINAccessLogResponse[];
+  data: AdminSINAccessLogResponse[] | EmployeeSINAccessLogResponse[];
   total: number;
   page: number;
   limit: number;

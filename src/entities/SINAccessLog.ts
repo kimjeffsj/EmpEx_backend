@@ -29,11 +29,35 @@ export class SINAccessLog {
   user: User;
 
   @Column({ type: "varchar", length: 20 })
-  accessType: "VIEW" | "ADMIN_ACCESS";
+  accessType: "ADMIN_ACCESS";
 
   @Column({ type: "varchar", length: 45, nullable: true })
   ipAddress: string;
 
   @CreateDateColumn({ type: "timestamptz" })
   accessedAt: Date;
+
+  constructor(partial: Partial<SINAccessLog>) {
+    if (partial) {
+      Object.assign(this, partial);
+    }
+  }
+
+  toEmployeeView(): Partial<SINAccessLog> {
+    return {
+      id: this.id,
+      employeeId: this.employeeId,
+      accessType: this.accessType,
+      accessedAt: this.accessedAt,
+    };
+  }
+
+  toAdminView(): Partial<SINAccessLog> {
+    return {
+      ...this.toEmployeeView(),
+      userId: this.userId,
+      ipAddress: this.ipAddress,
+      user: this.user,
+    };
+  }
 }
