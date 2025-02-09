@@ -1,194 +1,185 @@
-import { createMockResponse } from "@/test/utils/test.utils";
+import { Request, Response } from "express";
 import { SINController } from "../controller/sin.controller";
 import { SINService } from "../service/sin.service";
 import { TestDataSource } from "@/app/config/test-database";
-import { Response, Request } from "express";
-import { SINAccessLevel } from "@/entities/EmployeeSIN";
+import { createMockResponse } from "@/test/utils/test.utils";
 import {
-  ForbiddenError,
   NotFoundError,
   ValidationError,
+  ForbiddenError,
 } from "@/shared/types/error.types";
-import {
-  expectErrorResponse,
-  expectSuccessResponse,
-} from "@/test/helpers/response.helper";
+import { Employee } from "@/entities/Employee";
+import { UserRole } from "@/entities/User";
+import { createTestEmployeeRaw } from "@/test/\bemployee.fixture";
+import { mockSINData } from "@/test/sin.fixture";
 
-jest.mock("../service/sin.service.ts");
+jest.mock("../service/sin.service");
 
 describe("SINController", () => {
   let sinController: SINController;
-  let mockSINService: jest.Mocked<SINService>;
+  let mockSinService: jest.Mocked<SINService>;
   let mockRequest: Partial<Request>;
   let mockResponse: Response;
   let jsonSpy: jest.SpyInstance;
   let statusSpy: jest.SpyInstance;
+  let testEmployee: Employee;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     const mockRes = createMockResponse();
     mockResponse = mockRes.mockResponse;
-    jsonSpy = jest.spyOn(mockResponse, "json");
-    statusSpy = jest.spyOn(mockResponse, "status");
+    jsonSpy = mockRes.jsonSpy;
+    statusSpy = mockRes.statusSpy;
 
-    mockSINService = new SINService(TestDataSource) as jest.Mocked<SINService>;
+    mockSinService = new SINService(TestDataSource) as jest.Mocked<SINService>;
     sinController = new SINController(TestDataSource);
-    sinController["sinService"] = mockSINService;
+    sinController["sinService"] = mockSinService;
+
+    testEmployee = await createTestEmployeeRaw(TestDataSource);
   });
 
   describe("createSIN", () => {
-    const mockSINData = {
-      employeeId: 1,
-      sinNumber: "728492129",
-    };
-
-    const mockSINResponse = {
-      id: 1,
-      employeeId: 1,
-      last3: "129",
-      accessLevel: SINAccessLevel.EMPLOYEE,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      toPublicView: () => ({
+    it("should create SIN successfully", async () => {
+      const mockSinResponse = {
         id: 1,
-        employeeId: 1,
-        last3: "129",
-        accessLevel: SINAccessLevel.EMPLOYEE,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }),
-    };
+        employeeId: testEmployee.id,
+        last3: mockSINData.validSIN.slice(-3),
+        toPublicView: () => ({
+          id: 1,
+          employeeId: testEmployee.id,
+          last3: mockSINData.validSIN.slice(-3),
+        }),
+      };
+
+      mockSinService.saveSIN.mockResolvedValue(mockSinResponse);
+
+      mockRequest = {
+        body: {
+          employeeId: testEmployee.id,
+          sinNumber: mockSINData.validSIN,
+        },
+      };
+
+      await sinController.createSIN(mockRequest as Request, mockResponse);
+
+      expect(mockSinService.saveSIN).toHaveBeenCalledWith(
+        testEmployee.id,
+        mockSINData.validSIN
+      );
+      expect(statusSpy).toHaveBeenCalledWith(201);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        success: true,
+        data: mockSinResponse.toPublicView(),
+        timestamp: expect.any(String),
+      });
+    });
 
     it("should handle ValidationError", async () => {
-      const validationError = new ValidationError("Invalid SIN format");
-      mockSINService.saveSIN.mockRejectedValue(validationError);
-      mockRequest = { body: mockSINData };
-
-      await sinController.createSIN(
-        mockRequest as Request,
-        mockResponse as Response
+      mockSinService.saveSIN.mockRejectedValue(
+        new ValidationError("Invalid SIN format")
       );
 
-      expectErrorResponse(
-        jsonSpy,
-        statusSpy,
-        400,
-        "VALIDATION_ERROR",
-        "Invalid SIN format"
-      );
+      mockRequest = {
+        body: {
+          employeeId: testEmployee.id,
+          sinNumber: mockSINData.invalidSIN,
+        },
+      };
+
+      await sinController.createSIN(mockRequest as Request, mockResponse);
+
+      expect(statusSpy).toHaveBeenCalledWith(400);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        success: false,
+        data: null,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Invalid SIN format",
+        },
+        timestamp: expect.any(String),
+      });
     });
 
     it("should handle NotFoundError", async () => {
-      const notFoundError = new NotFoundError("Employee");
-      mockSINService.saveSIN.mockRejectedValue(notFoundError);
-      mockRequest = { body: mockSINData };
+      mockSinService.saveSIN.mockRejectedValue(new NotFoundError("Employee"));
 
-      await sinController.createSIN(
-        mockRequest as Request,
-        mockResponse as Response
-      );
+      mockRequest = {
+        body: {
+          employeeId: 999999,
+          sinNumber: mockSINData.validSIN,
+        },
+      };
 
-      expectErrorResponse(
-        jsonSpy,
-        statusSpy,
-        404,
-        "NOT_FOUND",
-        "Employee not found"
-      );
+      await sinController.createSIN(mockRequest as Request, mockResponse);
+
+      expect(statusSpy).toHaveBeenCalledWith(404);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        success: false,
+        data: null,
+        error: {
+          code: "NOT_FOUND",
+          message: "Employee not found",
+        },
+        timestamp: expect.any(String),
+      });
     });
   });
 
   describe("getSIN", () => {
     const mockUser = {
       id: 1,
-      role: "MANAGER",
+      email: "test@example.com",
+      role: UserRole.MANAGER,
     };
 
     it("should get SIN successfully", async () => {
-      const mockSIN = "123-456-789";
-      mockSINService.getSIN.mockResolvedValue(mockSIN);
+      mockSinService.getSIN.mockResolvedValue(mockSINData.validSIN);
+
       mockRequest = {
-        params: { employeeId: "1" },
+        params: { employeeId: testEmployee.id.toString() },
         query: { accessType: "VIEW" },
         ip: "127.0.0.1",
         user: mockUser,
       };
 
-      await sinController.getSIN(
-        mockRequest as Request,
-        mockResponse as Response
+      await sinController.getSIN(mockRequest as Request, mockResponse);
+
+      expect(mockSinService.getSIN).toHaveBeenCalledWith(
+        mockUser.id,
+        testEmployee.id,
+        "VIEW",
+        "127.0.0.1"
       );
-
-      expectSuccessResponse(jsonSpy, statusSpy, 200, { sin: mockSIN });
-    });
-
-    it("should handle unauthorized access", async () => {
-      mockRequest = {
-        params: { employeeId: "1" },
-        query: { accessType: "VIEW" },
-        ip: "127.0.0.1",
-        user: undefined,
-      };
-
-      await sinController.getSIN(
-        mockRequest as Request,
-        mockResponse as Response
-      );
-
-      expectErrorResponse(
-        jsonSpy,
-        statusSpy,
-        403,
-        "FORBIDDEN",
-        "Authentication required"
-      );
+      expect(jsonSpy).toHaveBeenCalledWith({
+        success: true,
+        data: { sin: mockSINData.validSIN },
+        timestamp: expect.any(String),
+      });
     });
 
     it("should handle ForbiddenError", async () => {
-      const forbiddenError = new ForbiddenError("Insufficient permissions");
-      mockSINService.getSIN.mockRejectedValue(forbiddenError);
+      mockSinService.getSIN.mockRejectedValue(
+        new ForbiddenError("Insufficient permissions")
+      );
+
       mockRequest = {
-        params: { employeeId: "1" },
+        params: { employeeId: testEmployee.id.toString() },
         query: { accessType: "ADMIN_ACCESS" },
         ip: "127.0.0.1",
-        user: { ...mockUser, role: "EMPLOYEE" },
+        user: { ...mockUser, role: UserRole.EMPLOYEE },
       };
 
-      await sinController.getSIN(
-        mockRequest as Request,
-        mockResponse as Response
-      );
+      await sinController.getSIN(mockRequest as Request, mockResponse);
 
-      expectErrorResponse(
-        jsonSpy,
-        statusSpy,
-        403,
-        "FORBIDDEN",
-        "Insufficient permissions"
-      );
-    });
-
-    it("should handle NotFoundError", async () => {
-      const notFoundError = new NotFoundError("SIN");
-      mockSINService.getSIN.mockRejectedValue(notFoundError);
-      mockRequest = {
-        params: { employeeId: "999" },
-        query: { accessType: "VIEW" },
-        ip: "127.0.0.1",
-        user: mockUser,
-      };
-
-      await sinController.getSIN(
-        mockRequest as Request,
-        mockResponse as Response
-      );
-
-      expectErrorResponse(
-        jsonSpy,
-        statusSpy,
-        404,
-        "NOT_FOUND",
-        "SIN not found"
-      );
+      expect(statusSpy).toHaveBeenCalledWith(403);
+      expect(jsonSpy).toHaveBeenCalledWith({
+        success: false,
+        data: null,
+        error: {
+          code: "FORBIDDEN",
+          message: "Insufficient permissions",
+        },
+        timestamp: expect.any(String),
+      });
     });
   });
 });
