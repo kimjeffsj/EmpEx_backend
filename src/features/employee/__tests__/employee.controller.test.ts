@@ -1,10 +1,6 @@
 import { Request, Response } from "express";
 import { EmployeeController } from "../controller/employee.controller";
-import {
-  CreateEmployeeDto,
-  UpdateEmployeeDto,
-} from "@/shared/types/employee.types";
-
+import { UpdateEmployeeDto } from "@/shared/types/employee.types";
 import { EmployeeService } from "../service/employee.service";
 import {
   NotFoundError,
@@ -12,9 +8,10 @@ import {
   DuplicateError,
   DatabaseError,
 } from "@/shared/types/error.types";
-import { mockEmployeeData } from "@/test/employee.fixture.ts";
+
 import { TestDataSource } from "@/app/config/test-database";
 import { createMockResponse } from "@/test/utils/test.utils";
+import { mockEmployeeData } from "@/test/\bemployee.fixture";
 
 // EmployeeService Mock
 jest.mock("../service/employee.service");
