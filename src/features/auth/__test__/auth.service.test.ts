@@ -17,7 +17,7 @@ import {
   UpdateUserDto,
 } from "@/shared/types/auth.types";
 import { compare, hash } from "bcrypt";
-import { createTestEmployeeRaw } from "@/test/\bemployee.fixture.ts";
+import { createTestEmployeeRaw } from "@/test/\bemployee.fixture";
 
 describe("AuthService", () => {
   let authService: AuthService;

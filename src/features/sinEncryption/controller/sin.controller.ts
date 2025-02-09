@@ -46,7 +46,7 @@ export class SINController {
   }
 
   // Retrieve SIN information and send response
-  async getSIN(req: Request<{ employeeId: string }>, res: Response) {
+  async getSIN(req: Request, res: Response) {
     try {
       const employeeId = parseInt(req.params.employeeId);
       const { accessType } = req.query;
