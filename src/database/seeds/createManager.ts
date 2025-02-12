@@ -1,6 +1,8 @@
 import { hash } from "bcrypt";
-import { AppDataSource } from "@/app/config/database";
-import { User, UserRole } from "@/entities/User";
+
+import { AppDataSource } from "../../app/config/database";
+
+import { User, UserRole } from "../../entities/User";
 import dotenv from "dotenv";
 
 dotenv.config();

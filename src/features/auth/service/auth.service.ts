@@ -234,11 +234,11 @@ export class AuthService {
 
   private async generateTokens(payload: Omit<TokenPayload, "iat" | "exp">) {
     const accessTokenOptions: SignOptions = {
-      expiresIn: Number(TOKEN_CONFIG.accessToken.expiresIn),
+      expiresIn: TOKEN_CONFIG.accessToken.expiresIn,
     };
 
     const refreshTokenOptions: SignOptions = {
-      expiresIn: Number(TOKEN_CONFIG.refreshToken.expiresIn),
+      expiresIn: TOKEN_CONFIG.refreshToken.expiresIn,
     };
 
     const accessToken = sign(

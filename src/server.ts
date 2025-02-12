@@ -20,6 +20,7 @@ import { getDataSource } from "./app/config/data-source";
 import { validateEnvVariables } from "./shared/\butils/env.validator";
 import { AuthService } from "./features/auth/service/auth.service";
 import { responseHandler } from "./shared/middleware/response.middleware";
+import { createDashboardRouter } from "./features/dashboard/routes/dashboard.routes";
 
 // Environment variables setup
 
@@ -111,6 +112,7 @@ const startServer = async () => {
     app.use("/api/timesheets", createTimesheetRouter(dataSource));
     app.use("/api/payrolls", createPayrollRouter(dataSource));
     app.use("/api/auth", createAuthRouter(dataSource));
+    app.use("/api/dashboard", createDashboardRouter(dataSource));
 
     // Token Cleanup
     setupTokenCleanup(dataSource);
