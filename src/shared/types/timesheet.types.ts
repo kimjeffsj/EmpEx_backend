@@ -1,6 +1,7 @@
 // DTO for creating Timesheet
 export interface CreateTimesheetDto {
   employeeId: number;
+  payPeriodId: number;
   startTime: Date;
   endTime: Date;
   regularHours: number;
