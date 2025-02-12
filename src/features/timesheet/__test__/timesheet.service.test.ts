@@ -8,10 +8,18 @@ import {
 } from "@/shared/types/timesheet.types";
 import { NotFoundError, ValidationError } from "@/shared/types/error.types";
 import { createTestEmployeeRaw } from "@/test/employee.fixture.ts";
+import {
+  PayPeriod,
+  PayPeriodStatus,
+  PayPeriodType,
+} from "@/entities/PayPeriod";
+import { Repository } from "typeorm";
 
 describe("TimesheetService", () => {
   let timesheetService: TimesheetService;
   let testEmployee: Employee;
+  let testPayPeriod: PayPeriod;
+  let payPeriodRepository: Repository<PayPeriod>;
 
   beforeAll(async () => {
     if (!TestDataSource.isInitialized) {
@@ -23,6 +31,7 @@ describe("TimesheetService", () => {
       TestDataSource.getRepository(Timesheet);
     timesheetService["employeeRepository"] =
       TestDataSource.getRepository(Employee);
+    payPeriodRepository = TestDataSource.getRepository(PayPeriod);
   });
 
   beforeEach(async () => {
@@ -31,6 +40,14 @@ describe("TimesheetService", () => {
     }
 
     testEmployee = await createTestEmployeeRaw(TestDataSource);
+
+    // Create test pay period
+    testPayPeriod = await payPeriodRepository.save({
+      startDate: new Date("2024-03-01"),
+      endDate: new Date("2024-03-15"),
+      periodType: PayPeriodType.FIRST_HALF,
+      status: PayPeriodStatus.PROCESSING,
+    });
   });
 
   afterAll(async () => {
@@ -41,6 +58,7 @@ describe("TimesheetService", () => {
     it("should create a timesheet successfully", async () => {
       const timesheetData: CreateTimesheetDto = {
         employeeId: testEmployee.id,
+        payPeriodId: testPayPeriod.id,
         startTime: new Date("2024-03-18T09:00:00"),
         endTime: new Date("2024-03-18T17:00:00"),
         regularHours: 8,
@@ -58,6 +76,7 @@ describe("TimesheetService", () => {
     it("should create a timesheet with overtime hours", async () => {
       const timesheetData: CreateTimesheetDto = {
         employeeId: testEmployee.id,
+        payPeriodId: testPayPeriod.id,
         startTime: new Date("2024-03-18T09:00:00"),
         endTime: new Date("2024-03-18T19:00:00"),
         regularHours: 8,
@@ -73,6 +92,7 @@ describe("TimesheetService", () => {
     it("should throw NotFoundError for non-existent employee", async () => {
       const timesheetData: CreateTimesheetDto = {
         employeeId: 9999,
+        payPeriodId: testPayPeriod.id,
         startTime: new Date(),
         endTime: new Date(),
         regularHours: 8,
@@ -86,6 +106,7 @@ describe("TimesheetService", () => {
     it("should throw ValidationError for invalid hours", async () => {
       const timesheetData: CreateTimesheetDto = {
         employeeId: testEmployee.id,
+        payPeriodId: testPayPeriod.id,
         startTime: new Date(),
         endTime: new Date(),
         regularHours: -1,
@@ -103,6 +124,7 @@ describe("TimesheetService", () => {
     beforeEach(async () => {
       const timesheetData: CreateTimesheetDto = {
         employeeId: testEmployee.id,
+        payPeriodId: testPayPeriod.id,
         startTime: new Date("2024-03-18T09:00:00"),
         endTime: new Date("2024-03-18T17:00:00"),
         regularHours: 8,
@@ -133,6 +155,7 @@ describe("TimesheetService", () => {
     beforeEach(async () => {
       const timesheetData: CreateTimesheetDto = {
         employeeId: testEmployee.id,
+        payPeriodId: testPayPeriod.id,
         startTime: new Date("2024-03-18T09:00:00"),
         endTime: new Date("2024-03-18T17:00:00"),
         regularHours: 8,
@@ -184,6 +207,7 @@ describe("TimesheetService", () => {
     beforeEach(async () => {
       const timesheetData: CreateTimesheetDto = {
         employeeId: testEmployee.id,
+        payPeriodId: testPayPeriod.id,
         startTime: new Date("2024-03-18T09:00:00"),
         endTime: new Date("2024-03-18T17:00:00"),
         regularHours: 8,
@@ -213,12 +237,14 @@ describe("TimesheetService", () => {
       const timesheets = [
         {
           employeeId: testEmployee.id,
+          payPeriodId: testPayPeriod.id,
           startTime: new Date(Date.UTC(2024, 2, 18, 9, 0, 0)),
           endTime: new Date(Date.UTC(2024, 2, 18, 17, 0, 0)),
           regularHours: 8,
         },
         {
           employeeId: testEmployee.id,
+          payPeriodId: testPayPeriod.id,
           startTime: new Date(Date.UTC(2024, 2, 19, 9, 0, 0)),
           endTime: new Date(Date.UTC(2024, 2, 19, 17, 0, 0)),
           regularHours: 8,

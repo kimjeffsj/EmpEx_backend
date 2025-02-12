@@ -125,6 +125,7 @@ describe("PayrollService", () => {
       // Create timesheets for the period
       const timesheetData = {
         employeeId: testEmployee.id,
+        payPeriodId: payPeriod.id,
         startTime: new Date(Date.UTC(2024, 2, 1, 9, 0, 0)),
         endTime: new Date(Date.UTC(2024, 2, 1, 17, 0, 0)),
         regularHours: 8.0,

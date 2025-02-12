@@ -9,6 +9,7 @@ import {
 } from "typeorm";
 import { Employee } from "./Employee";
 import { Payroll } from "./Payroll";
+import { PayPeriod } from "./PayPeriod";
 
 @Entity("timesheets")
 export class Timesheet {
@@ -39,6 +40,13 @@ export class Timesheet {
 
   @Column("decimal", { precision: 10, scale: 2 })
   totalPay: number;
+
+  @Column()
+  payPeriodId: number;
+
+  @ManyToOne(() => PayPeriod)
+  @JoinColumn({ name: "payPeriodId" })
+  payPeriod: PayPeriod;
 
   @Column({ nullable: true })
   payrollId: number;

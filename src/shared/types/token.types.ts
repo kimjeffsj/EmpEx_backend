@@ -3,22 +3,22 @@ import { Secret } from "jsonwebtoken";
 export interface TokenConfig {
   accessToken: {
     secret: Secret;
-    expiresIn: string; // '15m'
+    expiresIn: "15m";
   };
   refreshToken: {
     secret: Secret;
-    expiresIn: string; // '7d'
+    expiresIn: "7d";
   };
 }
 
 export const TOKEN_CONFIG: TokenConfig = {
   accessToken: {
     secret: process.env.JWT_SECRET,
-    expiresIn: process.env.JWT_ACCESS_EXPIRY || "15m",
+    expiresIn: "15m",
   },
   refreshToken: {
     secret: process.env.JWT_REFRESH_SECRET,
-    expiresIn: process.env.JWT_REFRESH_EXPIRY || "7d",
+    expiresIn: "7d",
   },
 };
 
