@@ -33,7 +33,7 @@ export class DashboardController {
     try {
       const employeeId = req.user?.employeeId;
       if (!employeeId) {
-        return ResponseUtil.badRequest(res, "Employee ID is required");
+        return ResponseUtil.validationError(res, "Employee ID is required");
       }
 
       const stats = await this.dashboardService.getEmployeeDashboardStats(
