@@ -165,7 +165,7 @@ export class DashboardService {
 
   private async calculateTimesheetStats(payPeriodId: number) {
     const timesheets = await this.timesheetRepository.find({
-      where: { payrollId: payPeriodId },
+      where: { payPeriodId: payPeriodId },
     });
 
     const submittedTimesheets = timesheets.length;
@@ -214,7 +214,7 @@ export class DashboardService {
     const totalEmployees = await this.getTotalActiveEmployees();
     const submittedCount = await this.timesheetRepository.count({
       where: {
-        payrollId: payPeriodId,
+        payPeriodId: payPeriodId,
         createdAt: LessThanOrEqual(overdueDate),
       },
     });
