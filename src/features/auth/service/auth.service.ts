@@ -39,6 +39,16 @@ export class AuthService {
   async login(loginDto: LoginDto): Promise<AuthResponse> {
     const user = await this.userRepository.findOne({
       where: { email: loginDto.email },
+      relations: ["employeeUsers"],
+    });
+
+    console.log("Login attempt:", {
+      email: loginDto.email,
+      foundUser: {
+        id: user?.id,
+        role: user?.role,
+        employeeUsers: user?.employeeUsers,
+      },
     });
 
     if (!user || !user.is_active) {
@@ -49,9 +59,22 @@ export class AuthService {
       loginDto.password,
       user.password_hash
     );
+
+    console.log("Password validation:", {
+      isValid: isValidPassword,
+      userId: user.id,
+    });
+
     if (!isValidPassword) {
       throw new UnauthorizedError("Invalid credentials");
     }
+
+    const tokenPayload = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    };
+    console.log("Token payload:", tokenPayload);
 
     // Update last login
     user.last_login = new Date();
