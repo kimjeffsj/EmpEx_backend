@@ -279,6 +279,19 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
+  async getUserById(userId: number): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ["employeeUsers", "employeeUsers.employee"],
+    });
+
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+
+    return user;
+  }
+
   async logout(userId: number, token: string): Promise<void> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();

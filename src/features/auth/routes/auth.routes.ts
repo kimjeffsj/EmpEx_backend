@@ -208,5 +208,25 @@ export const createAuthRouter = (dataSource: DataSource): Router => {
     authController.logout.bind(authController)
   );
 
+  /**
+   * @swagger
+   * /api/auth/me:
+   *   get:
+   *     summary: Get current user information
+   *     tags: [Auth]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Current user information retrieved successfully
+   *       401:
+   *         description: Not authenticated
+   */
+  router.get(
+    "/me",
+    authenticateJWT,
+    authController.getCurrentUser.bind(authController)
+  );
+
   return router;
 };

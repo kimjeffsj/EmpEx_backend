@@ -10,6 +10,7 @@ import swaggerUi from "swagger-ui-express";
 import { specs } from "./app/config/swagger";
 import { errorHandler } from "./shared/middleware/error.middleware";
 import schedule from "node-schedule";
+import cookieParser from "cookie-parser";
 
 // Routers
 import { createTimesheetRouter } from "./features/timesheet/routes/timesheet.routes";
@@ -28,7 +29,18 @@ const app: Express = express();
 const port = process.env.PORT || 3000;
 
 // Middleware setup
-app.use(cors());
+
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "http://localhost:4000",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+app.use(cookieParser());
+
 app.use(responseHandler);
 app.use(express.json());
 

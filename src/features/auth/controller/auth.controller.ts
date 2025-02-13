@@ -22,6 +22,21 @@ export class AuthController {
       const loginDto = req.body;
       const authResponse = await this.authService.login(loginDto);
 
+      // Set HTTP-only cookies
+      res.cookie("accessToken", authResponse.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 15 * 60 * 1000, // 15 minutes
+      });
+
+      res.cookie("refreshToken", authResponse.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
       return ResponseUtil.success(res, authResponse);
     } catch (error) {
       if (error instanceof UnauthorizedError) {
@@ -111,6 +126,26 @@ export class AuthController {
       return ResponseUtil.serverError(
         res,
         "An unexpected error occurred while updating user."
+      );
+    }
+  }
+
+  async getCurrentUser(req: Request, res: Response) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return ResponseUtil.unauthorized(res, "User not authenticated");
+      }
+
+      const user = await this.authService.getUserById(userId);
+      return ResponseUtil.success(res, user);
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        return ResponseUtil.notFound(res, error.message);
+      }
+      return ResponseUtil.serverError(
+        res,
+        "An unexpected error occurred while fetching user data."
       );
     }
   }
