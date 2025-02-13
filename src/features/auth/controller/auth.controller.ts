@@ -161,6 +161,20 @@ export class AuthController {
 
       await this.authService.logout(userId, token);
 
+      res.clearCookie("accessToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        path: "/",
+      });
+
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        path: "/",
+      });
+
       return ResponseUtil.success(res, {
         code: "LOGOUT_SUCCESS",
         message: "Successfully logged out",
