@@ -32,9 +32,9 @@ export class DashboardService {
     try {
       // Get current pay period with related payrolls
       const currentPeriod = await this.getCurrentPayPeriod();
-      // if (!currentPeriod) {
-      //   throw new NotFoundError("Active pay period not found");
-      // }
+      if (!currentPeriod) {
+        throw new NotFoundError("There is no active Pay period");
+      }
 
       // Get employee statistics
       const [totalEmployees, newHires, resignations] = await Promise.all([

@@ -1,28 +1,16 @@
-import { Secret } from "jsonwebtoken";
+import { UserRole } from "@/entities/User";
 
-export interface TokenConfig {
-  accessToken: {
-    secret: Secret;
-    expiresIn: "15m";
-  };
-  refreshToken: {
-    secret: Secret;
-    expiresIn: "7d";
-  };
+export interface TokenPayload {
+  id: number;
+  email: string;
+  role: UserRole;
+  employeeId?: number;
+  exp?: number;
+  iat?: number;
+  refreshTokenId?: string;
 }
 
-export const TOKEN_CONFIG: TokenConfig = {
-  accessToken: {
-    secret: process.env.JWT_SECRET,
-    expiresIn: "15m",
-  },
-  refreshToken: {
-    secret: process.env.JWT_REFRESH_SECRET,
-    expiresIn: "7d",
-  },
-};
-
-if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
-  console.error("JWT secrets are not configured in environment variables");
-  process.exit(1);
+export interface TokenResponse {
+  accessToken: string;
+  refreshToken: string;
 }
