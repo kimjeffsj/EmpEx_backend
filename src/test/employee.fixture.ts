@@ -25,10 +25,10 @@ export const createTestEmployeeRaw = async (dataSource: DataSource) => {
 };
 
 export const createTestEmployeeWithUser = async (dataSource: DataSource) => {
-  // 직원 생성
+  // Create employee
   const employee = await createTestEmployeeRaw(dataSource);
 
-  // 사용자 계정 생성
+  // Create user account
   const hashedPassword = await hash("Password123!", 10);
   const user = await dataSource.getRepository(User).save({
     email: `${employee.firstName.toLowerCase()}.${employee.lastName.toLowerCase()}@test.com`,
@@ -39,7 +39,7 @@ export const createTestEmployeeWithUser = async (dataSource: DataSource) => {
     is_active: true,
   });
 
-  // EmployeeUser 관계 생성
+  // Create EmployeeUser relationship
   await dataSource.getRepository(EmployeeUser).save({
     userId: user.id,
     employeeId: employee.id,

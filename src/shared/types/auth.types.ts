@@ -6,11 +6,11 @@ export interface UserResponse {
   firstName: string;
   lastName: string;
   role: UserRole;
+  employeeId?: number; // Only for employees
   isActive: boolean;
   lastLogin?: Date;
   createdAt: Date;
   updatedAt: Date;
-  employeeId?: number; // Only for employees
 }
 
 // DTOs
@@ -92,3 +92,21 @@ export interface LogoutResponse {
     logoutTime: Date;
   };
 }
+
+export interface TokenResult {
+  accessToken: string;
+  refreshToken: string;
+  refreshTokenId: string;
+  payload: TokenPayload;
+}
+
+export const TOKEN_CONFIG = {
+  accessToken: {
+    secret: process.env.JWT_SECRET!,
+    expiresIn: "15m",
+  },
+  refreshToken: {
+    secret: process.env.JWT_REFRESH_SECRET!,
+    expiresIn: "7d",
+  },
+} as const;
