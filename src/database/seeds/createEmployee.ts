@@ -54,6 +54,17 @@ const testEmployees: TestEmployeeData[] = [
     startDate: new Date("2023-03-01"),
     password: "Employee123!",
   },
+  {
+    firstName: "Jeff",
+    lastName: "Kim",
+    email: "employee@test.com",
+    sinNumber: "126783123",
+    address: "6655 Korea St, Vancouver, BC",
+    dateOfBirth: new Date("1991-05-04"),
+    payRate: 30.0,
+    startDate: new Date("2025-02-01"),
+    password: "123456kk",
+  },
 ];
 
 async function createInitialEmployees() {

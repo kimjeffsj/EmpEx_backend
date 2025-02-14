@@ -24,6 +24,10 @@ const options = {
           scheme: "bearer",
           bearerFormat: "JWT",
         },
+        basicAuth: {
+          type: "http",
+          scheme: "basic",
+        },
       },
       schemas: {
         // Employee Schema
