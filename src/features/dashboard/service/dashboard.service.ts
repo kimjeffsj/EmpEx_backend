@@ -30,20 +30,20 @@ export class DashboardService {
 
   async getManagerDashboardStats(): Promise<ManagerDashboardStats> {
     try {
-      // 기본 통계 데이터 조회
+      // Fetch basic statistical data
       const [totalEmployees, newHires, resignations] = await Promise.all([
         this.getTotalActiveEmployees(),
         this.getNewHiresCount(),
         this.getResignationsCount(),
       ]);
 
-      // 현재 급여 기간 조회
+      // Get current pay period
       const currentPeriod = await this.getCurrentPayPeriod();
       let periodStats = null;
       let pendingPayroll = 0;
 
       if (currentPeriod) {
-        // 현재 기간의 타임시트 통계 계산
+        // Calculate timesheet statistics for current period
         const timesheetStats = await this.calculateTimesheetStats(
           currentPeriod.id
         );
