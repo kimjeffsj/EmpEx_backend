@@ -30,50 +30,54 @@ export class DashboardService {
 
   async getManagerDashboardStats(): Promise<ManagerDashboardStats> {
     try {
-      // Get current pay period with related payrolls
-      const currentPeriod = await this.getCurrentPayPeriod();
-      if (!currentPeriod) {
-        throw new NotFoundError("There is no active Pay period");
-      }
-
-      // Get employee statistics
+      // Fetch basic statistical data
       const [totalEmployees, newHires, resignations] = await Promise.all([
         this.getTotalActiveEmployees(),
         this.getNewHiresCount(),
         this.getResignationsCount(),
       ]);
 
-      // Calculate timesheet statistics for current period
-      const timesheetStats = await this.calculateTimesheetStats(
-        currentPeriod.id
-      );
+      // Get current pay period
+      const currentPeriod = await this.getCurrentPayPeriod();
+      let periodStats = null;
+      let pendingPayroll = 0;
 
-      // Calculate pending payroll amount
-      const pendingPayroll = await this.calculatePendingPayroll(
-        currentPeriod.id
-      );
+      if (currentPeriod) {
+        // Calculate timesheet statistics for current period
+        const timesheetStats = await this.calculateTimesheetStats(
+          currentPeriod.id
+        );
+        periodStats = {
+          id: currentPeriod.id,
+          startDate: currentPeriod.startDate,
+          endDate: currentPeriod.endDate,
+          periodType: currentPeriod.periodType,
+          status: currentPeriod.status,
+          submittedTimesheets: timesheetStats.submittedTimesheets,
+          totalEmployees,
+          totalHours: timesheetStats.totalHours,
+          overtimeHours: timesheetStats.overtimeHours,
+        };
+        pendingPayroll = await this.calculatePendingPayroll(currentPeriod.id);
+      }
 
       return {
         totalEmployees,
         newHires,
         resignations,
         pendingPayroll,
-        currentPeriod: {
-          id: currentPeriod.id,
-          startDate: currentPeriod.startDate,
-          endDate: currentPeriod.endDate,
-          periodType: currentPeriod.periodType,
-          status: currentPeriod.status,
-          totalEmployees,
-          ...timesheetStats,
-        },
+        currentPeriod: periodStats,
         timesheetStats: {
-          submitted: timesheetStats.submittedTimesheets,
-          pending: totalEmployees - timesheetStats.submittedTimesheets,
-          overdue: await this.calculateOverdueTimesheets(currentPeriod.id),
+          submitted: periodStats?.submittedTimesheets || 0,
+          pending: totalEmployees - (periodStats?.submittedTimesheets || 0),
+          overdue: currentPeriod
+            ? await this.calculateOverdueTimesheets(currentPeriod.id)
+            : 0,
         },
       };
     } catch (error) {
+      console.error("Error in getManagerStats service:", error);
+
       if (error instanceof NotFoundError) {
         throw error;
       }
@@ -96,16 +100,13 @@ export class DashboardService {
         throw new NotFoundError("Employee");
       }
 
-      // Get current period data
-      const currentPeriodStats = await this.getEmployeeCurrentPeriodStats(
-        employeeId
+      const [currentPeriodStats, monthlyHours, lastPaystub] = await Promise.all(
+        [
+          this.getEmployeeCurrentPeriodStats(employeeId),
+          this.getEmployeeMonthlyHours(employeeId),
+          this.getEmployeeLastPaystub(employeeId),
+        ]
       );
-
-      // Get monthly hours
-      const monthlyHours = await this.getEmployeeMonthlyHours(employeeId);
-
-      // Get last payroll information
-      const lastPaystub = await this.getEmployeeLastPaystub(employeeId);
 
       return {
         timesheet: {
@@ -117,6 +118,8 @@ export class DashboardService {
         },
       };
     } catch (error) {
+      console.error("Error in getEmployeeStats service:", error);
+
       if (error instanceof NotFoundError) {
         throw error;
       }
