@@ -25,6 +25,7 @@ export interface ManagerDashboardStats {
 }
 
 export interface EmployeeDashboardStats {
+  employee: { payRate: number };
   timesheet: {
     currentPeriod: {
       id: number;

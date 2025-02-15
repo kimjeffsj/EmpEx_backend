@@ -109,6 +109,9 @@ export class DashboardService {
       );
 
       return {
+        employee: {
+          payRate: employee.payRate,
+        },
         timesheet: {
           currentPeriod: currentPeriodStats,
           monthlyHours,
